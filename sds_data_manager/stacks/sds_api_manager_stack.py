@@ -70,19 +70,39 @@ class SdsApiManager(Stack):
                 f"{data_bucket.bucket_arn}/*",
             ],
         )
-        lambda_code_directory = pathlib.Path(__file__).parent.parent / "lambda_code"
-        lambda_code_directory_str = str(lambda_code_directory.resolve())
+        lambda_code_directory = (
+            pathlib.Path(__file__).parent.parent / "lambda_code"
+        ).resolve()
+        code_bundle = lambda_.Code.from_asset(
+            str(lambda_code_directory),
+            bundling=cdk.BundlingOptions(
+                image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                command=[
+                    "bash",
+                    "-c",
+                    (
+                        "pip install -r requirements.txt -t /asset-output/python && "
+                        "cp -au . /asset-output/python"
+                    ),
+                ],
+            ),
+        )
+        layer = lambda_.LayerVersion(
+            self,
+            id="DatabaseLayer",
+            code=code_bundle,
+            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+        )
 
         # upload API lambda
-        upload_api_lambda = lambda_alpha_.PythonFunction(
+        upload_api_lambda = lambda_.Function(
             self,
             id="UploadAPILambda",
             function_name="upload-api-handler",
-            entry=lambda_code_directory_str,
-            index="SDSCode/upload_api.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            timeout=cdk.Duration.minutes(15),
+            code=code_bundle,
+            handler="SDSCode.upload_api.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            timeout=cdk.Duration.seconds(30),
             memory_size=1000,
             allow_public_subnet=True,
             vpc=vpc,
@@ -103,16 +123,17 @@ class SdsApiManager(Stack):
             use_path_params=True,
         )
 
+        raw_code = lambda_.Code.from_asset(str(lambda_code_directory))
         # query API lambda
-        query_api_lambda = lambda_alpha_.PythonFunction(
+        query_api_lambda = lambda_.Function(
             self,
             id="QueryAPILambda",
             function_name="query-api-handler",
-            entry=lambda_code_directory_str,
-            index="SDSCode/query_api.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            timeout=cdk.Duration.minutes(1),
+            code=raw_code,
+            layers=[layer],
+            handler="SDSCode.query_api.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            timeout=cdk.Duration.seconds(30),
             memory_size=1000,
             allow_public_subnet=True,
             vpc=vpc,
@@ -130,15 +151,14 @@ class SdsApiManager(Stack):
         )
 
         # download API lambda
-        download_api = lambda_alpha_.PythonFunction(
+        download_api = lambda_.Function(
             self,
             id="DownloadAPILambda",
             function_name="download-api-handler",
-            entry=lambda_code_directory_str,
-            index="SDSCode/download_api.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            timeout=cdk.Duration.seconds(60),
+            code=code_bundle,
+            handler="SDSCode.download_api.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            timeout=cdk.Duration.seconds(30),
             environment={
                 "S3_BUCKET": data_bucket.bucket_name,
             },

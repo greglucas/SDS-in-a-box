@@ -3,17 +3,17 @@
 import pytest
 from aws_cdk.assertions import Template
 
-from sds_data_manager.stacks.api_gateway_stack import ApiGateway
-from sds_data_manager.stacks.data_bucket_stack import DataBucketStack
-from sds_data_manager.stacks.networking_stack import NetworkingStack
-from sds_data_manager.stacks.sds_api_manager_stack import SdsApiManager
+from sds_data_manager.constructs.api_gateway_construct import ApiGateway
+from sds_data_manager.constructs.data_bucket_construct import DataBucketConstruct
+from sds_data_manager.constructs.networking_construct import NetworkingConstruct
+from sds_data_manager.constructs.sds_api_manager_construct import SdsApiManager
 
 
 @pytest.fixture()
 def template(stack, env):
     """Return the data bucket stack."""
-    data_bucket = DataBucketStack(stack, "indexer-data-bucket", env=env)
-    networking_stack = NetworkingStack(stack, "Networking")
+    data_bucket = DataBucketConstruct(stack, "indexer-data-bucket", env=env)
+    networking_construct = NetworkingConstruct(stack, "Networking")
     apigw = ApiGateway(
         stack,
         construct_id="Api-manager-ApigwTest",
@@ -24,8 +24,8 @@ def template(stack, env):
         env=env,
         api=apigw,
         data_bucket=data_bucket.data_bucket,
-        vpc=networking_stack.vpc,
-        rds_security_group=networking_stack.rds_security_group,
+        vpc=networking_construct.vpc,
+        rds_security_group=networking_construct.rds_security_group,
         db_secret_name="test-secrets",  # noqa
     )
 

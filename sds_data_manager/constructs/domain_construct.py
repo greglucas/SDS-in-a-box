@@ -5,7 +5,7 @@ from aws_cdk import aws_route53 as route53
 from constructs import Construct
 
 
-class DomainStack(Construct):
+class DomainConstruct(Construct):
     """Acquires hosted_zone and certificate.
 
     NOTE: Please make sure domain_name is registered in AWS account. This step

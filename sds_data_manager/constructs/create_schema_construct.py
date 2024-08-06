@@ -13,7 +13,7 @@ from constructs import Construct
 
 
 class CreateSchema(Construct):
-    """Stack for creating schema creation lambda."""
+    """Construct for creating schema creation lambda."""
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class CreateSchema(Construct):
         Parameters
         ----------
         scope : Construct
-            The App object in which to create this Stack
+            The App object in which to create this Construct
         construct_id : str
             The ID (name) of the stack
         db_secret_name : str

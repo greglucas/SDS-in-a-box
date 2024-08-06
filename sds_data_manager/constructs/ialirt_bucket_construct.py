@@ -6,8 +6,8 @@ from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
 
-class IAlirtBucketStack(Construct):
-    """Stack for IAlirt Ingest Bucket."""
+class IAlirtBucketConstruct(Construct):
+    """Construct for IAlirt Ingest Bucket."""
 
     def __init__(
         self,

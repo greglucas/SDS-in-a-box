@@ -7,8 +7,8 @@ from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
 
-class DataBucketStack(Construct):
-    """Stack for Data Bucket."""
+class DataBucketConstruct(Construct):
+    """Construct for Data Bucket."""
 
     def __init__(
         self,

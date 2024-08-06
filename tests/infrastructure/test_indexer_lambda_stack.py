@@ -5,26 +5,26 @@ from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_rds as rds
 from aws_cdk.assertions import Template
 
-from sds_data_manager.stacks.data_bucket_stack import DataBucketStack
-from sds_data_manager.stacks.database_stack import SdpDatabase
-from sds_data_manager.stacks.indexer_lambda_stack import IndexerLambda
-from sds_data_manager.stacks.monitoring_stack import MonitoringStack
-from sds_data_manager.stacks.networking_stack import NetworkingStack
+from sds_data_manager.constructs.data_bucket_construct import DataBucketConstruct
+from sds_data_manager.constructs.database_construct import SdpDatabase
+from sds_data_manager.constructs.indexer_lambda_construct import IndexerLambda
+from sds_data_manager.constructs.monitoring_construct import MonitoringConstruct
+from sds_data_manager.constructs.networking_construct import NetworkingConstruct
 
 
 @pytest.fixture()
 def template(stack, env):
     """Indexer lambda setup."""
-    data_bucket = DataBucketStack(stack, "indexer-data-bucket", env=env)
-    networking_stack = NetworkingStack(stack, "Networking")
+    data_bucket = DataBucketConstruct(stack, "indexer-data-bucket", env=env)
+    networking_construct = NetworkingConstruct(stack, "Networking")
     rds_size = "SMALL"
     rds_class = "BURSTABLE3"
     rds_storage = 200
-    database_stack = SdpDatabase(
+    database_construct = SdpDatabase(
         stack,
         "RDS",
-        vpc=networking_stack.vpc,
-        rds_security_group=networking_stack.rds_security_group,
+        vpc=networking_construct.vpc,
+        rds_security_group=networking_construct.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
         instance_size=ec2.InstanceSize[rds_size],
         instance_class=ec2.InstanceClass[rds_class],
@@ -33,20 +33,21 @@ def template(stack, env):
         secret_name="sdp-database-creds-rds",  # noqa
         database_name="imapdb",
     )
-    monitoring_stack = MonitoringStack(stack, construct_id="MonitoringStack")
+    monitoring_construct = MonitoringConstruct(
+        stack, construct_id="MonitoringConstruct"
+    )
     IndexerLambda(
         stack,
         "indexer-lambda",
         db_secret_name="test-secrets",  # noqa
-        vpc=networking_stack.vpc,
-        vpc_subnets=database_stack.rds_subnet_selection,
-        rds_security_group=networking_stack.rds_security_group,
+        vpc=networking_construct.vpc,
+        vpc_subnets=database_construct.rds_subnet_selection,
+        rds_security_group=networking_construct.rds_security_group,
         data_bucket=data_bucket.data_bucket,
-        sns_topic=monitoring_stack.sns_topic_notifications,
+        sns_topic=monitoring_construct.sns_topic_notifications,
     )
 
     template = Template.from_stack(stack)
-
     return template
 
 

@@ -9,11 +9,11 @@ from aws_cdk import aws_lambda_python_alpha as lambda_alpha_
 from aws_cdk import aws_secretsmanager as secrets
 from constructs import Construct
 
-from .api_gateway_stack import ApiGateway
+from .api_gateway_construct import ApiGateway
 
 
 class SdsApiManager(Construct):
-    """Stack for API Management."""
+    """Construct for API Management."""
 
     def __init__(
         self,
@@ -27,7 +27,7 @@ class SdsApiManager(Construct):
         db_secret_name: str,
         **kwargs,
     ) -> None:
-        """Initialize the SdsApiManagerStack.
+        """Initialize the SdsApiManagerConstruct.
 
         Parameters
         ----------

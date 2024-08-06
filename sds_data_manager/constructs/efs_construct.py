@@ -16,7 +16,7 @@ from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
 
-class EFSStack(Construct):
+class EFSConstruct(Construct):
     """Elastic File System for storing various software and data.
 
     This file system can be mounted by multiple resources. It

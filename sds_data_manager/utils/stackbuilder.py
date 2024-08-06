@@ -7,24 +7,24 @@ from aws_cdk import App, Environment, Stack
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_rds as rds
 
-from sds_data_manager.stacks import (
-    api_gateway_stack,
-    backup_bucket_stack,
+from sds_data_manager.constructs import (
+    api_gateway_construct,
+    backup_bucket_construct,
     batch_compute_resources,
-    create_schema_stack,
-    data_bucket_stack,
-    database_stack,
-    domain_stack,
-    ecr_stack,
-    efs_stack,
-    ialirt_bucket_stack,
-    ialirt_processing_stack,
-    indexer_lambda_stack,
+    create_schema_construct,
+    data_bucket_construct,
+    database_construct,
+    domain_construct,
+    ecr_construct,
+    efs_construct,
+    ialirt_bucket_construct,
+    ialirt_processing_construct,
+    indexer_lambda_construct,
     instrument_lambdas,
-    monitoring_stack,
-    networking_stack,
-    sds_api_manager_stack,
-    sqs_stack,
+    monitoring_construct,
+    networking_construct,
+    sds_api_manager_construct,
+    sqs_construct,
 )
 
 
@@ -45,46 +45,47 @@ def build_sds(
         Account configuration (domain_name and other account specific configurations)
 
     """
-    # TODO: Rename this variable to sdc_stack?
-    scope = Stack(scope, "SDCStack", env=env)
-
-    data_bucket = data_bucket_stack.DataBucketStack(
-        scope=scope, construct_id="DataBucket", env=env
+    networking_stack = Stack(scope, "NetworkingStack", env=env)
+    networking = networking_construct.NetworkingConstruct(
+        networking_stack, "Networking"
     )
 
-    networking = networking_stack.NetworkingStack(scope, "Networking")
+    sdc_stack = Stack(scope, "SDCStack", env=env)
+    data_bucket = data_bucket_construct.DataBucketConstruct(
+        scope=sdc_stack, construct_id="DataBucket", env=env
+    )
 
-    monitoring = monitoring_stack.MonitoringStack(
-        scope=scope,
-        construct_id="MonitoringStack",
+    monitoring = monitoring_construct.MonitoringConstruct(
+        scope=sdc_stack,
+        construct_id="MonitoringConstruct",
     )
 
     domain = None
     domain_name = account_config.get("domain_name", None)
     account_name = account_config["account_name"]
     if domain_name is not None:
-        domain = domain_stack.DomainStack(
-            scope,
-            "DomainStack",
+        domain = domain_construct.DomainConstruct(
+            scope=sdc_stack,
+            construct_id="DomainConstruct",
             domain_name=domain_name,
             account_name=account_name,
         )
 
-    api = api_gateway_stack.ApiGateway(
-        scope,
-        "ApiGateway",
-        domain_stack=domain,
+    api = api_gateway_construct.ApiGateway(
+        scope=sdc_stack,
+        construct_id="ApiGateway",
+        domain_construct=domain,
     )
     api.deliver_to_sns(monitoring.sns_topic_notifications)
 
     # Get RDS properties from account_config
     rds_size = account_config.get("rds_size", "SMALL")
     rds_class = account_config.get("rds_class", "BURSTABLE3")
-    rds_storage = account_config.get("rds_stack", 200)
+    rds_storage = account_config.get("rds_construct", 200)
     db_secret_name = "sdp-database-cred"  # noqa
-    rds_stack = database_stack.SdpDatabase(
-        scope,
-        "RDS",
+    rds_construct = database_construct.SdpDatabase(
+        scope=sdc_stack,
+        construct_id="RDS",
         vpc=networking.vpc,
         rds_security_group=networking.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_6,
@@ -96,19 +97,19 @@ def build_sds(
         database_name="imap",
     )
 
-    indexer_lambda_stack.IndexerLambda(
-        scope=scope,
+    indexer_lambda_construct.IndexerLambda(
+        scope=sdc_stack,
         construct_id="IndexerLambda",
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
-        vpc_subnets=rds_stack.rds_subnet_selection,
+        vpc_subnets=rds_construct.rds_subnet_selection,
         rds_security_group=networking.rds_security_group,
         data_bucket=data_bucket.data_bucket,
         sns_topic=monitoring.sns_topic_notifications,
     )
 
-    sds_api_manager_stack.SdsApiManager(
-        scope=scope,
+    sds_api_manager_construct.SdsApiManager(
+        scope=sdc_stack,
         construct_id="SdsApiManager",
         api=api,
         env=env,
@@ -119,21 +120,23 @@ def build_sds(
     )
 
     # create EFS
-    efs_instance = efs_stack.EFSStack(scope, "EFSStack", networking.vpc)
+    efs_instance = efs_construct.EFSConstruct(
+        scope=sdc_stack, construct_id="EFSConstruct", vpc=networking.vpc
+    )
 
     lambda_code_directory = Path(__file__).parent.parent / "lambda_code"
     lambda_code_directory_str = str(lambda_code_directory.resolve())
 
     # This valid instrument list is from imap-data-access package
     for instrument in imap_data_access.VALID_INSTRUMENTS:
-        ecr = ecr_stack.EcrStack(
-            scope,
-            f"{instrument}Ecr",
+        ecr = ecr_construct.EcrConstruct(
+            scope=sdc_stack,
+            construct_id=f"{instrument}Ecr",
             instrument_name=f"{instrument}",
         )
 
         batch_compute_resources.FargateBatchResources(
-            scope,
+            scope=sdc_stack,
             construct_id=f"{instrument}BatchJob",
             vpc=networking.vpc,
             processing_step_name=instrument,
@@ -145,37 +148,37 @@ def build_sds(
         )
 
     # Create SQS pipeline for each instrument and add it to instrument_sqs
-    instrument_sqs = sqs_stack.SqsStack(
-        scope,
-        "SqsStack",
+    instrument_sqs = sqs_construct.SqsConstruct(
+        scope=sdc_stack,
+        construct_id="SqsConstruct",
         instrument_names=imap_data_access.VALID_INSTRUMENTS,
     ).instrument_queue
 
     instrument_lambdas.BatchStarterLambda(
-        scope,
-        "BatchStarterLambda",
+        scope=sdc_stack,
+        construct_id="BatchStarterLambda",
         env=env,
         data_bucket=data_bucket.data_bucket,
         code_path=lambda_code_directory_str,
-        rds_stack=rds_stack,
+        rds_construct=rds_construct,
         rds_security_group=networking.rds_security_group,
-        subnets=rds_stack.rds_subnet_selection,
+        subnets=rds_construct.rds_subnet_selection,
         vpc=networking.vpc,
         sqs_queue=instrument_sqs,
     )
 
-    create_schema_stack.CreateSchema(
-        scope,
-        "CreateSchemaStack",
+    create_schema_construct.CreateSchema(
+        scope=sdc_stack,
+        construct_id="CreateSchemaConstruct",
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
-        vpc_subnets=rds_stack.rds_subnet_selection,
+        vpc_subnets=rds_construct.rds_subnet_selection,
         rds_security_group=networking.rds_security_group,
     )
 
     # create lambda that mounts EFS and writes data to EFS
-    efs_stack.EFSWriteLambda(
-        scope=scope,
+    efs_construct.EFSWriteLambda(
+        scope=sdc_stack,
         construct_id="EFSWriteLambda",
         env=env,
         vpc=networking.vpc,
@@ -183,16 +186,17 @@ def build_sds(
         efs_instance=efs_instance,
     )
 
+    ialirt_stack = Stack(scope, "IalirtStack", env=env)
     # I-ALiRT IOIS ECR
-    ialirt_ecr = ecr_stack.EcrStack(
-        scope,
-        "IalirtEcr",
+    ialirt_ecr = ecr_construct.EcrConstruct(
+        scope=ialirt_stack,
+        construct_id="IalirtEcr",
         instrument_name="IalirtEcr",
     )
 
     # I-ALiRT IOIS S3 bucket
-    ialirt_bucket = ialirt_bucket_stack.IAlirtBucketStack(
-        scope=scope, construct_id="IAlirtBucket", env=env
+    ialirt_bucket = ialirt_bucket_construct.IAlirtBucketConstruct(
+        scope=ialirt_stack, construct_id="IAlirtBucket", env=env
     )
 
     # All traffic to I-ALiRT is directed to listed container ports
@@ -200,9 +204,9 @@ def build_sds(
     container_ports = {"Primary": 8080, "Secondary": 80}
 
     for primary_or_secondary in ialirt_ports:
-        ialirt_processing_stack.IalirtProcessing(
-            scope,
-            f"IalirtProcessing{primary_or_secondary}",
+        ialirt_processing_construct.IalirtProcessing(
+            scope=ialirt_stack,
+            construct_id=f"IalirtProcessing{primary_or_secondary}",
             vpc=networking.vpc,
             repo=ialirt_ecr.container_repo,
             processing_name=primary_or_secondary,
@@ -226,7 +230,7 @@ def build_backup(scope: App, env: Environment, source_account: str):
 
     """
     # This is the S3 bucket used by upload_api_lambda
-    backup_bucket_stack.BackupBucket(
+    backup_bucket_construct.BackupBucket(
         scope,
         "BackupBucket",
         source_account=source_account,

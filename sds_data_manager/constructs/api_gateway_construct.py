@@ -1,4 +1,4 @@
-"""Configure the API Gateway Stack.
+"""Configure the API Gateway Construct.
 
 Sets up api gateway, creates routes, and creates methods that are linked to the
 lambda function.
@@ -21,20 +21,20 @@ from aws_cdk import aws_route53_targets as targets
 from aws_cdk import aws_secretsmanager as secrets
 from constructs import Construct
 
-from sds_data_manager.stacks.domain_stack import DomainStack
+from sds_data_manager.constructs.domain_construct import DomainConstruct
 
 
 class ApiGateway(Construct):
-    """Stack for creating an API Gateway."""
+    """Construct for creating an API Gateway."""
 
     def __init__(
         self,
         scope: Construct,
         construct_id: str,
-        domain_stack: DomainStack = None,
+        domain_construct: DomainConstruct = None,
         **kwargs,
     ) -> None:
-        """Construct the API Gateway Stack.
+        """Construct the API Gateway Construct.
 
         Parameters
         ----------
@@ -42,7 +42,7 @@ class ApiGateway(Construct):
             Parent construct.
         construct_id : str
             A unique string identifier for this construct.
-        domain_stack : DomainStack, Optional
+        domain_construct : DomainConstruct, Optional
             Custom domain, hosted zone, and certificate
         kwargs : dict
             Keyword arguments
@@ -60,12 +60,12 @@ class ApiGateway(Construct):
         )
 
         # Add a custom domain to the API if we have one
-        if domain_stack is not None:
+        if domain_construct is not None:
             custom_domain = apigw.DomainName(
                 self,
                 "RestAPI-DomainName",
-                domain_name=f"api.{domain_stack.domain_name}",
-                certificate=domain_stack.certificate,
+                domain_name=f"api.{domain_construct.domain_name}",
+                certificate=domain_construct.certificate,
                 endpoint_type=apigw.EndpointType.REGIONAL,
             )
 
@@ -81,8 +81,8 @@ class ApiGateway(Construct):
             route53.ARecord(
                 self,
                 "RestAPI-AliasRecord",
-                zone=domain_stack.hosted_zone,
-                record_name=f"api.{domain_stack.domain_name}",
+                zone=domain_construct.hosted_zone,
+                record_name=f"api.{domain_construct.domain_name}",
                 target=route53.RecordTarget.from_alias(
                     targets.ApiGatewayDomain(custom_domain)
                 ),
@@ -165,7 +165,7 @@ class ApiGateway(Construct):
 
 
 class APILambda(Construct):
-    """Generic Stack to create API handler Lambda."""
+    """Generic Construct to create API handler Lambda."""
 
     def __init__(
         self,

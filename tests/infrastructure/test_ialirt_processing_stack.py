@@ -8,7 +8,7 @@ import requests
 def get_nlb_dns(stack_name, port, container_name):
     """Retrieve DNS for the NLB from CloudFormation."""
     client = boto3.client("cloudformation")
-    response = client.describe_stacks(StackName=stack_name)
+    response = client.describe_constructs(StackName=stack_name)
     output_key = f"LoadBalancerDNS{container_name}{port}"
     outputs = response["Stacks"][0]["Outputs"]
     for output in outputs:

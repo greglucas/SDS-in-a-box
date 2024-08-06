@@ -14,7 +14,7 @@ from constructs import Construct
 
 
 class IndexerLambda(Construct):
-    """Stack for indexer lambda."""
+    """Construct for indexer lambda."""
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class IndexerLambda(Construct):
         sns_topic,
         **kwargs,
     ) -> None:
-        """IndexerLambda Stack.
+        """IndexerLambda Construct.
 
         Parameters
         ----------

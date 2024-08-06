@@ -13,7 +13,7 @@ from aws_cdk import aws_sqs as sqs
 from aws_cdk.aws_lambda_event_sources import SqsEventSource
 from constructs import Construct
 
-from sds_data_manager.stacks.database_stack import SdpDatabase
+from sds_data_manager.constructs.database_construct import SdpDatabase
 
 
 class BatchStarterLambda(Construct):
@@ -26,7 +26,7 @@ class BatchStarterLambda(Construct):
         env: Environment,
         data_bucket: s3.Bucket,
         code_path: str or Path,
-        rds_stack: SdpDatabase,
+        rds_construct: SdpDatabase,
         rds_security_group: ec2.SecurityGroup,
         subnets: ec2.SubnetSelection,
         vpc: ec2.Vpc,
@@ -47,7 +47,7 @@ class BatchStarterLambda(Construct):
             S3 bucket
         code_path : str or Path
             Path to the Lambda code directory
-        rds_stack: SdpDatabase
+        rds_construct: SdpDatabase
             Database stack
         rds_security_group : ec2.SecurityGroup
             RDS security group
@@ -67,7 +67,7 @@ class BatchStarterLambda(Construct):
         # TODO: if we need more variables change so we can pass as input
         lambda_environment = {
             "S3_BUCKET": f"{data_bucket.bucket_name}",
-            "SECRET_NAME": rds_stack.rds_creds.secret_name,
+            "SECRET_NAME": rds_construct.rds_creds.secret_name,
             "ACCOUNT": f"{env.account}",
             "REGION": f"{env.region}",
         }
@@ -104,7 +104,7 @@ class BatchStarterLambda(Construct):
         data_bucket.grant_read_write(self.instrument_lambda)
 
         rds_secret = secrets.Secret.from_secret_name_v2(
-            self, "rds_secret", rds_stack.secret_name
+            self, "rds_secret", rds_construct.secret_name
         )
         rds_secret.grant_read(grantee=self.instrument_lambda)
 

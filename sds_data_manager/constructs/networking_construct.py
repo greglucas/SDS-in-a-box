@@ -5,7 +5,7 @@ from constructs import Construct
 
 
 # TODO: May not need everything here, but left it for now
-class NetworkingStack(Construct):
+class NetworkingConstruct(Construct):
     """General purpose networking components."""
 
     def __init__(
@@ -14,7 +14,7 @@ class NetworkingStack(Construct):
         construct_id: str,
         **kwargs,
     ) -> None:
-        """NetworkingStack constructor.
+        """NetworkingConstruct constructor.
 
         Parameters
         ----------

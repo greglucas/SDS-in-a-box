@@ -16,7 +16,7 @@ from aws_cdk import aws_sns
 from constructs import Construct
 
 
-class MonitoringStack(Construct):
+class MonitoringConstruct(Construct):
     """Define the monitoring stack components."""
 
     def __init__(
@@ -25,7 +25,7 @@ class MonitoringStack(Construct):
         construct_id: str,
         **kwargs,
     ) -> None:
-        """Stack for monitoring resources within AWS.
+        """Construct for monitoring resources within AWS.
 
         Parameters
         ----------

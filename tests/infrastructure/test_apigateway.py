@@ -6,8 +6,8 @@ import pytest
 from aws_cdk import Duration, aws_lambda, aws_sns
 from aws_cdk.assertions import Match, Template
 
-from sds_data_manager.stacks.api_gateway_stack import ApiGateway, APILambda
-from sds_data_manager.stacks.networking_stack import NetworkingStack
+from sds_data_manager.constructs.api_gateway_construct import ApiGateway, APILambda
+from sds_data_manager.constructs.networking_construct import NetworkingConstruct
 
 
 @pytest.fixture()
@@ -38,7 +38,7 @@ def lambda_template(stack):
         Path(__file__).parent.parent.parent / "sds_data_manager/lambda_code"
     )
     spin_table_code = lambda_code_directory / "spin_table_api.py"
-    vpc = NetworkingStack(stack, "networking-stack")
+    vpc = NetworkingConstruct(stack, "networking-stack")
     APILambda(
         stack,
         "SpinLambda",

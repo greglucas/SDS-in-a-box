@@ -17,7 +17,7 @@ from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secrets
 from constructs import Construct
 
-from sds_data_manager.stacks.efs_stack import EFSStack
+from sds_data_manager.constructs.efs_construct import EFSConstruct
 
 
 class FargateBatchResources(Construct):
@@ -32,7 +32,7 @@ class FargateBatchResources(Construct):
         data_bucket: s3.Bucket,
         repo: ecr.Repository,
         db_secret_name: str,
-        efs_instance: EFSStack,
+        efs_instance: EFSConstruct,
         account_name: str,
         batch_max_vcpus=10,
         job_vcpus=0.25,

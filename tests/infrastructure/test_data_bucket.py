@@ -3,13 +3,13 @@
 import pytest
 from aws_cdk.assertions import Match, Template
 
-from sds_data_manager.stacks.data_bucket_stack import DataBucketStack
+from sds_data_manager.constructs.data_bucket_construct import DataBucketConstruct
 
 
 @pytest.fixture()
 def template(stack, env):
     """Return a template for the data bucket stack."""
-    DataBucketStack(stack, "data-bucket", env=env)
+    DataBucketConstruct(stack, "data-bucket", env=env)
     template = Template.from_stack(stack)
 
     return template

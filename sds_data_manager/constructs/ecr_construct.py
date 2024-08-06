@@ -1,11 +1,11 @@
-"""Configure the ECR Stack."""
+"""Configure the ECR Construct."""
 
 from aws_cdk import RemovalPolicy
 from aws_cdk import aws_ecr as ecr
 from constructs import Construct
 
 
-class EcrStack(Construct):
+class EcrConstruct(Construct):
     """Construct the ECR Resources."""
 
     def __init__(
@@ -15,7 +15,7 @@ class EcrStack(Construct):
         instrument_name: str,
         **kwargs,
     ) -> None:
-        """DataStorageStack constructor.
+        """DataStorageConstruct constructor.
 
         Parameters
         ----------

@@ -3,7 +3,7 @@
 import pytest
 from aws_cdk.assertions import Match, Template
 
-from sds_data_manager.stacks.backup_bucket_stack import BackupBucket
+from sds_data_manager.constructs.backup_bucket_construct import BackupBucket
 
 
 @pytest.fixture()

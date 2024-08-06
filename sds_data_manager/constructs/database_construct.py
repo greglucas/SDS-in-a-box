@@ -6,7 +6,7 @@ from constructs import Construct
 
 
 class SdpDatabase(Construct):
-    """Stack for creating database."""
+    """Construct for creating database."""
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class SdpDatabase(Construct):
         Parameters
         ----------
         scope : Construct
-            The App object in which to create this Stack
+            The App object in which to create this Construct
         construct_id : str
             The ID (name) of the stack
         vpc : ec2.Vpc

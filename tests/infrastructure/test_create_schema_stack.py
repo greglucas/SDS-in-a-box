@@ -5,24 +5,24 @@ from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_rds as rds
 from aws_cdk.assertions import Match, Template
 
-from sds_data_manager.stacks.create_schema_stack import CreateSchema
-from sds_data_manager.stacks.database_stack import SdpDatabase
-from sds_data_manager.stacks.networking_stack import NetworkingStack
+from sds_data_manager.constructs.create_schema_construct import CreateSchema
+from sds_data_manager.constructs.database_construct import SdpDatabase
+from sds_data_manager.constructs.networking_construct import NetworkingConstruct
 
 
 @pytest.fixture()
 def template(stack):
     """Return the networking stack."""
-    networking_stack = NetworkingStack(stack, "Networking")
+    networking_construct = NetworkingConstruct(stack, "Networking")
 
     rds_size = "SMALL"
     rds_class = "BURSTABLE3"
     rds_storage = 200
-    database_stack = SdpDatabase(
+    database_construct = SdpDatabase(
         stack,
         "RDS",
-        vpc=networking_stack.vpc,
-        rds_security_group=networking_stack.rds_security_group,
+        vpc=networking_construct.vpc,
+        rds_security_group=networking_construct.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
         instance_size=ec2.InstanceSize[rds_size],
         instance_class=ec2.InstanceClass[rds_class],
@@ -36,9 +36,9 @@ def template(stack):
         stack,
         construct_id="CreateSchema",
         db_secret_name="0123456789",  # noqa
-        vpc=networking_stack.vpc,
-        vpc_subnets=database_stack.rds_subnet_selection,
-        rds_security_group=networking_stack.rds_security_group,
+        vpc=networking_construct.vpc,
+        vpc_subnets=database_construct.rds_subnet_selection,
+        rds_security_group=networking_construct.rds_security_group,
     )
     template = Template.from_stack(stack)
 

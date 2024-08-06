@@ -32,7 +32,7 @@ class BackupBucket(Construct):
         source_account: str,
         **kwargs,
     ) -> None:
-        """BackupBucketStack.
+        """BackupBucketConstruct.
 
         Parameters
         ----------

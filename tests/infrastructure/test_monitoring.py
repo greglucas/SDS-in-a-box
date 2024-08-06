@@ -3,13 +3,13 @@
 import pytest
 from aws_cdk.assertions import Template
 
-from sds_data_manager.stacks.monitoring_stack import MonitoringStack
+from sds_data_manager.constructs.monitoring_construct import MonitoringConstruct
 
 
 @pytest.fixture()
 def template(stack):
     """Return a template monitoring stack."""
-    MonitoringStack(
+    MonitoringConstruct(
         stack,
         construct_id="MonitorTest",
     )

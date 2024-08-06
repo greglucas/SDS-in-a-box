@@ -3,30 +3,22 @@
 import pytest
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_rds as rds
-from aws_cdk.assertions import Template
+from aws_cdk.assertions import Match, Template
 
 from sds_data_manager.stacks.database_stack import SdpDatabase
 from sds_data_manager.stacks.networking_stack import NetworkingStack
 
 
-@pytest.fixture(scope="module")
-def networking_stack(app, env):
-    """Return the networking stack."""
-    networking = NetworkingStack(app, "Networking", env=env)
-    return networking
-
-
-@pytest.fixture(scope="module")
-def template(app, networking_stack, env):
+@pytest.fixture()
+def template(stack):
     """Return a database template."""
+    networking_stack = NetworkingStack(stack, "Networking")
     rds_size = "SMALL"
     rds_class = "BURSTABLE3"
     rds_storage = 200
-    stack = SdpDatabase(
-        app,
+    SdpDatabase(
+        stack,
         "RDS",
-        description="IMAP SDP database",
-        env=env,
         vpc=networking_stack.vpc,
         rds_security_group=networking_stack.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
@@ -42,28 +34,18 @@ def template(app, networking_stack, env):
     return template
 
 
-def test_secret_manager_resource_count(template):
-    """Ensure that the template has the appropriate secrets manager."""
+def test_database_stack(template):
+    """Test the database infrastructure stack."""
+    # Ensure that the template has the appropriate secrets manager."""
     template.resource_count_is("AWS::SecretsManager::Secret", 1)
-
-
-def test_scecret_target_attachment_resource_count(template):
-    """Ensure that the template has the appropriate secret target attachement."""
+    # Ensure that the template has the appropriate secret target attachement
     template.resource_count_is("AWS::SecretsManager::SecretTargetAttachment", 1)
-
-
-def test_rds_db_subnet_group_count(template):
-    """Ensure that the template has the appropriate db subnet group."""
+    # Ensure that the template has the appropriate db subnet group
     template.resource_count_is("AWS::RDS::DBSubnetGroup", 1)
-
-
-def test_rds_instance_resource_count(template):
-    """Ensure that the template has the appropriate DB instance."""
+    # Ensure that the template has the appropriate DB instance
     template.resource_count_is("AWS::RDS::DBInstance", 1)
 
-
-def test_rds_resource_properties(template):
-    """Ensure that the template has the appropriate RDS resource properties."""
+    # Ensure that the template has the appropriate RDS resource properties
     template.has_resource_properties(
         "AWS::RDS::DBInstance",
         props={
@@ -71,7 +53,9 @@ def test_rds_resource_properties(template):
             "CopyTagsToSnapshot": True,
             "DBInstanceClass": "db.t3.small",
             "DBName": "imapdb",
-            "DBSubnetGroupName": {"Ref": "RdsInstanceSubnetGroup9495D83D"},
+            "DBSubnetGroupName": {
+                "Ref": Match.string_like_regexp("RdsInstanceSubnetGroup*")
+            },
             "DeletionProtection": False,
             "Engine": "postgres",
             "EngineVersion": "15.3",

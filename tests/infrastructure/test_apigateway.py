@@ -2,19 +2,17 @@
 
 from pathlib import Path
 
-import aws_cdk as cdk
 import pytest
-from aws_cdk import Duration, Stack, aws_lambda, aws_sns
+from aws_cdk import Duration, aws_lambda, aws_sns
 from aws_cdk.assertions import Match, Template
 
 from sds_data_manager.stacks.api_gateway_stack import ApiGateway, APILambda
 from sds_data_manager.stacks.networking_stack import NetworkingStack
 
 
-@pytest.fixture(scope="module")
-def template(app):
+@pytest.fixture()
+def template(stack):
     """Return a template for the API gateway stack."""
-    stack = Stack(app, "test-stack")
     test_func = aws_lambda.Function(
         stack,
         "test-function",
@@ -24,26 +22,25 @@ def template(app):
     )
     test_sns_topic = aws_sns.Topic(stack, "test-sns-topic")
     apigw = ApiGateway(
-        app,
+        stack,
         construct_id="ApigwTest",
     )
     apigw.deliver_to_sns(sns_topic=test_sns_topic)
     apigw.add_route("test-route", "GET", test_func)
-    template = Template.from_stack(apigw)
+    template = Template.from_stack(stack)
     return template
 
 
 @pytest.fixture()
-def lambda_template():
+def lambda_template(stack):
     """Return a template for the API lambda stack."""
-    app = cdk.App()
     lambda_code_directory = (
         Path(__file__).parent.parent.parent / "sds_data_manager/lambda_code"
     )
     spin_table_code = lambda_code_directory / "spin_table_api.py"
-    vpc = NetworkingStack(app, "networking-stack")
-    test_func = APILambda(
-        app,
+    vpc = NetworkingStack(stack, "networking-stack")
+    APILambda(
+        stack,
         "SpinLambda",
         lambda_name="test-lambda",
         code_path=spin_table_code,
@@ -54,7 +51,7 @@ def lambda_template():
         vpc=vpc.vpc,
     )
 
-    template = Template.from_stack(test_func)
+    template = Template.from_stack(stack)
     return template
 
 
@@ -85,7 +82,9 @@ def test_cloudwatch_alarm(template):
             "ComparisonOperator": "GreaterThanThreshold",
             "EvaluationPeriods": 60,
             "ActionsEnabled": True,
-            "AlarmActions": [{"Fn::ImportValue": Match.string_like_regexp("sns")}],
+            "AlarmActions": [
+                {"Fn::ImportValue": None, "Ref": Match.string_like_regexp("sns")}
+            ],
             "DatapointsToAlarm": 1,
             "Dimensions": [{"Name": "ApiName", "Value": Match.any_value()}],
             "MetricName": "Latency",

@@ -12,31 +12,17 @@ from sds_data_manager.stacks.monitoring_stack import MonitoringStack
 from sds_data_manager.stacks.networking_stack import NetworkingStack
 
 
-@pytest.fixture(scope="module")
-def data_bucket(app, env):
-    """Return the data bucket stack."""
-    stack = DataBucketStack(app, "indexer-data-bucket", env=env)
-    return stack
-
-
-@pytest.fixture(scope="module")
-def networking_stack(app, env):
-    """Return the networking stack."""
-    networking = NetworkingStack(app, "Networking", env=env)
-    return networking
-
-
-@pytest.fixture(scope="module")
-def database_stack(app, networking_stack, env):
-    """Return the database stack."""
+@pytest.fixture()
+def template(stack, env):
+    """Indexer lambda setup."""
+    data_bucket = DataBucketStack(stack, "indexer-data-bucket", env=env)
+    networking_stack = NetworkingStack(stack, "Networking")
     rds_size = "SMALL"
     rds_class = "BURSTABLE3"
     rds_storage = 200
     database_stack = SdpDatabase(
-        app,
+        stack,
         "RDS",
-        description="IMAP SDP database",
-        env=env,
         vpc=networking_stack.vpc,
         rds_security_group=networking_stack.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
@@ -47,23 +33,10 @@ def database_stack(app, networking_stack, env):
         secret_name="sdp-database-creds-rds",  # noqa
         database_name="imapdb",
     )
-    return database_stack
-
-
-@pytest.fixture(scope="module")
-def monitoring_stack(app, env):
-    """Return the monitoring stack."""
-    networking = MonitoringStack(app, construct_id="MonitoringStack", env=env)
-    return networking
-
-
-@pytest.fixture(scope="module")
-def template(app, networking_stack, data_bucket, database_stack, monitoring_stack, env):
-    """Return a template indexer lambda stack."""
-    stack = IndexerLambda(
-        app,
+    monitoring_stack = MonitoringStack(stack, construct_id="MonitoringStack")
+    IndexerLambda(
+        stack,
         "indexer-lambda",
-        env=env,
         db_secret_name="test-secrets",  # noqa
         vpc=networking_stack.vpc,
         vpc_subnets=database_stack.rds_subnet_selection,
@@ -79,9 +52,6 @@ def template(app, networking_stack, data_bucket, database_stack, monitoring_stac
 
 def test_indexer_role(template):
     """Ensure the template has appropriate IAM roles."""
-    template.resource_count_is("AWS::IAM::Role", 1)
-
-
-def test_lambda_count(template):
-    """Ensure the template has appropriate lambdas."""
-    template.resource_count_is("AWS::Lambda::Function", 1)
+    template.resource_count_is("AWS::IAM::Role", 4)
+    # 2 for RDS + 1 for indexer lambda
+    template.resource_count_is("AWS::Lambda::Function", 3)

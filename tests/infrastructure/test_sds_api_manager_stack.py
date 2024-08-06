@@ -9,38 +9,20 @@ from sds_data_manager.stacks.networking_stack import NetworkingStack
 from sds_data_manager.stacks.sds_api_manager_stack import SdsApiManager
 
 
-@pytest.fixture(scope="module")
-def data_bucket(app, env):
+@pytest.fixture()
+def template(stack, env):
     """Return the data bucket stack."""
-    stack = DataBucketStack(app, "indexer-data-bucket", env=env)
-    return stack
-
-
-@pytest.fixture(scope="module")
-def networking_stack(app, env):
-    """Return the networking stack."""
-    networking = NetworkingStack(app, "Networking", env=env)
-    return networking
-
-
-@pytest.fixture(scope="module")
-def api_gateway(app, env):
-    """Return the API gateway stack."""
+    data_bucket = DataBucketStack(stack, "indexer-data-bucket", env=env)
+    networking_stack = NetworkingStack(stack, "Networking")
     apigw = ApiGateway(
-        app,
+        stack,
         construct_id="Api-manager-ApigwTest",
     )
-    return apigw
-
-
-@pytest.fixture(scope="module")
-def template(app, networking_stack, data_bucket, api_gateway, env):
-    """Return a template API manager."""
-    stack = SdsApiManager(
-        app,
+    SdsApiManager(
+        stack,
         "api-manager",
-        api=api_gateway,
         env=env,
+        api=apigw,
         data_bucket=data_bucket.data_bucket,
         vpc=networking_stack.vpc,
         rds_security_group=networking_stack.rds_security_group,
@@ -48,15 +30,11 @@ def template(app, networking_stack, data_bucket, api_gateway, env):
     )
 
     template = Template.from_stack(stack)
-
     return template
 
 
 def test_indexer_role(template):
     """Ensure that the template has appropriate IAM roles."""
-    template.resource_count_is("AWS::IAM::Role", 4)
-
-
-def test_lambda_count(template):
-    """Ensure that the template has appropriate lambda count."""
-    template.resource_count_is("AWS::Lambda::Function", 4)
+    template.resource_count_is("AWS::IAM::Role", 8)
+    # Ensure that the template has appropriate lambda count
+    template.resource_count_is("AWS::Lambda::Function", 6)

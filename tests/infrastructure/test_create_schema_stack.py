@@ -10,24 +10,17 @@ from sds_data_manager.stacks.database_stack import SdpDatabase
 from sds_data_manager.stacks.networking_stack import NetworkingStack
 
 
-@pytest.fixture(scope="module")
-def networking_stack(app, env):
+@pytest.fixture()
+def template(stack):
     """Return the networking stack."""
-    networking = NetworkingStack(app, "Networking", env=env)
-    return networking
+    networking_stack = NetworkingStack(stack, "Networking")
 
-
-@pytest.fixture(scope="module")
-def database_stack(app, networking_stack, env):
-    """Return the database stack."""
     rds_size = "SMALL"
     rds_class = "BURSTABLE3"
     rds_storage = 200
     database_stack = SdpDatabase(
-        app,
+        stack,
         "RDS",
-        description="IMAP SDP database",
-        env=env,
         vpc=networking_stack.vpc,
         rds_security_group=networking_stack.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
@@ -38,17 +31,10 @@ def database_stack(app, networking_stack, env):
         secret_name="sdp-database-creds-rds",  # noqa
         database_name="imapdb",
     )
-    return database_stack
 
-
-@pytest.fixture(scope="module")
-def template(app, networking_stack, database_stack, env):
-    """Return a template for the create schema stack."""
-    # create dynamoDB stack
-    stack = CreateSchema(
-        app,
+    CreateSchema(
+        stack,
         construct_id="CreateSchema",
-        env=env,
         db_secret_name="0123456789",  # noqa
         vpc=networking_stack.vpc,
         vpc_subnets=database_stack.rds_subnet_selection,
@@ -59,30 +45,16 @@ def template(app, networking_stack, database_stack, env):
     return template
 
 
-def test_lambda_function_resource_count(template):
+def test_create_schema(template):
     """Ensure that the template has the appropriate lambdas."""
     # there is a lambda for creating the schema and another lambda
     # that gets created for the "Provider Framework Event".
     template.resource_count_is("AWS::Lambda::Function", 2)
-
-
-def test_iam_policy_resource_count(template):
-    """Ensure that the template has the appropriate IAM policy."""
     template.resource_count_is("AWS::IAM::Policy", 2)
-
-
-def test_iam_role_resource_count(template):
-    """Ensure that the template has the appropriate IAM role."""
     template.resource_count_is("AWS::IAM::Role", 2)
-
-
-def test_custom_resource_count(template):
-    """Ensure that the template has the appropriate custom resources."""
     template.resource_count_is("AWS::CloudFormation::CustomResource", 1)
 
-
-def test_create_schema_lambda_function_resource_properties(template):
-    """Ensure that the template has the appropriate lambda properties."""
+    # Lambda properties
     template.has_resource_properties(
         "AWS::Lambda::Function",
         props={

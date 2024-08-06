@@ -9,7 +9,7 @@ An example of the format of the url: https://api.prod.imap-mission.com/query
 from pathlib import Path
 from typing import Optional
 
-from aws_cdk import Duration, Stack, aws_sns
+from aws_cdk import Duration, aws_sns
 from aws_cdk import aws_apigateway as apigw
 from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_cloudwatch_actions as cloudwatch_actions
@@ -24,7 +24,7 @@ from constructs import Construct
 from sds_data_manager.stacks.domain_stack import DomainStack
 
 
-class ApiGateway(Stack):
+class ApiGateway(Construct):
     """Stack for creating an API Gateway."""
 
     def __init__(
@@ -164,7 +164,7 @@ class ApiGateway(Stack):
         resource.add_method(http_method, apigw.LambdaIntegration(lambda_function))
 
 
-class APILambda(Stack):
+class APILambda(Construct):
     """Generic Stack to create API handler Lambda."""
 
     def __init__(

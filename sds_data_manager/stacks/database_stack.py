@@ -1,19 +1,17 @@
 """Configure the database stack."""
 
-from aws_cdk import Environment, Stack
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_rds as rds
 from constructs import Construct
 
 
-class SdpDatabase(Stack):
+class SdpDatabase(Construct):
     """Stack for creating database."""
 
     def __init__(
         self,
         scope: Construct,
         construct_id: str,
-        env: Environment,
         vpc: ec2.Vpc,
         rds_security_group,
         engine_version: rds.PostgresEngineVersion,
@@ -33,8 +31,6 @@ class SdpDatabase(Stack):
             The App object in which to create this Stack
         construct_id : str
             The ID (name) of the stack
-        env : Environment
-            CDK environment
         vpc : ec2.Vpc
             Virtual private cloud
         rds_security_group : obj
@@ -57,7 +53,7 @@ class SdpDatabase(Stack):
             Keyword arguments
 
         """
-        super().__init__(scope, construct_id, env=env, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
 
         self.secret_name = secret_name
 

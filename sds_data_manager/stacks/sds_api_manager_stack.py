@@ -3,7 +3,6 @@
 import pathlib
 
 import aws_cdk as cdk
-from aws_cdk import Stack
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_python_alpha as lambda_alpha_
@@ -13,7 +12,7 @@ from constructs import Construct
 from .api_gateway_stack import ApiGateway
 
 
-class SdsApiManager(Stack):
+class SdsApiManager(Construct):
     """Stack for API Management."""
 
     def __init__(
@@ -52,7 +51,7 @@ class SdsApiManager(Stack):
             Keyword arguments
 
         """
-        super().__init__(scope, construct_id, env=env, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
         # Get the current region
         region = env.region
 

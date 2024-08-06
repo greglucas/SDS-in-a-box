@@ -1,12 +1,11 @@
 """Configure the networking stack."""
 
-from aws_cdk import Stack
 from aws_cdk import aws_ec2 as ec2
 from constructs import Construct
 
 
 # TODO: May not need everything here, but left it for now
-class NetworkingStack(Stack):
+class NetworkingStack(Construct):
     """General purpose networking components."""
 
     def __init__(

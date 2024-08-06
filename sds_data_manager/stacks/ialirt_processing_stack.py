@@ -7,7 +7,7 @@ https://docs.aws.amazon.com/AmazonECS/latest/bestpracticesguide/networking-inbou
 https://aws.amazon.com/elasticloadbalancing/features/#Product_comparisons
 """
 
-from aws_cdk import CfnOutput, Stack
+from aws_cdk import CfnOutput
 from aws_cdk import aws_autoscaling as autoscaling
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
@@ -18,7 +18,7 @@ from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
 
-class IalirtProcessing(Stack):
+class IalirtProcessing(Construct):
     """A processing system for I-ALiRT."""
 
     def __init__(

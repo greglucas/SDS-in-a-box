@@ -1,12 +1,12 @@
 """Configure the backup bucket."""
 
-from aws_cdk import RemovalPolicy, Stack
+from aws_cdk import RemovalPolicy
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
 
-class BackupBucket(Stack):
+class BackupBucket(Construct):
     """Creates the destination bucket for data backups.
 
     It can be run in the same account as SdsDataManager, or in a separate

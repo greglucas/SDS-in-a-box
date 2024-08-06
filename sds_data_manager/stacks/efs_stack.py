@@ -3,8 +3,8 @@
 from aws_cdk import (
     CfnOutput,
     Duration,
+    Environment,
     Fn,
-    Stack,
     aws_iam,
     aws_lambda,
 )
@@ -16,7 +16,7 @@ from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
 
-class EFSStack(Stack):
+class EFSStack(Construct):
     """Elastic File System for storing various software and data.
 
     This file system can be mounted by multiple resources. It
@@ -130,13 +130,14 @@ class EFSStack(Stack):
         )
 
 
-class EFSWriteLambda(Stack):
+class EFSWriteLambda(Construct):
     """Create some Lambdas that write to the EFS file system."""
 
     def __init__(
         self,
         scope: Construct,
         construct_id: str,
+        env: Environment,
         vpc: ec2.Vpc,
         data_bucket: s3.Bucket,
         efs_instance: efs.FileSystem,
@@ -150,6 +151,8 @@ class EFSWriteLambda(Stack):
             Parent construct.
         construct_id : str
             A unique string identifier for this construct.
+        env : Environment
+            Account and region
         vpc : ec2.Vpc
             VPC into which to put the resources that require networking.
         data_bucket : obj
@@ -204,7 +207,7 @@ class EFSWriteLambda(Stack):
         # This access point is used by other resources to read from EFS
         lambda_mount_path = "/mnt/spice"
         lambda_efs_access = aws_lambda.FileSystem(
-            arn=f"arn:aws:elasticfilesystem:{self.region}:{self.account}:access-point/{spice_access_point_id}",
+            arn=f"arn:aws:elasticfilesystem:{env.region}:{env.account}:access-point/{spice_access_point_id}",
             local_mount_path=lambda_mount_path,
         )
 

@@ -1,12 +1,12 @@
 """Stack for creating instrument SQS queues and attaching batch_starter as a target."""
 
-from aws_cdk import Duration, Stack, aws_sqs
+from aws_cdk import Duration, aws_sqs
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
 from constructs import Construct
 
 
-class SqsStack(Stack):
+class SqsStack(Construct):
     """Stack to create instrument/level SQS queues and attach them to EventBridge."""
 
     def __init__(

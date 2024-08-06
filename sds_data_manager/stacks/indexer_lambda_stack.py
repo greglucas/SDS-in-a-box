@@ -3,7 +3,6 @@
 import pathlib
 
 import aws_cdk as cdk
-from aws_cdk import Stack
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
@@ -14,14 +13,13 @@ from aws_cdk import aws_secretsmanager as secrets
 from constructs import Construct
 
 
-class IndexerLambda(Stack):
+class IndexerLambda(Construct):
     """Stack for indexer lambda."""
 
     def __init__(
         self,
         scope: Construct,
         construct_id: str,
-        env: cdk.Environment,
         db_secret_name: str,
         vpc: ec2.Vpc,
         vpc_subnets,
@@ -38,8 +36,6 @@ class IndexerLambda(Stack):
             Parent construct.
         construct_id : str
             A unique string identifier for this construct.
-        env : obj
-            The environment
         db_secret_name : str
             The DB secret name
         vpc : obj
@@ -57,7 +53,7 @@ class IndexerLambda(Stack):
             Keyword arguments
 
         """
-        super().__init__(scope, construct_id, env=env, **kwargs)
+        super().__init__(scope, construct_id, **kwargs)
 
         indexer_lambda = lambda_alpha_.PythonFunction(
             self,

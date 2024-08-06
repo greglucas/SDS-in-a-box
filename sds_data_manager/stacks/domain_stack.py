@@ -1,12 +1,11 @@
 """Configure the domain stack."""
 
-from aws_cdk import Stack
 from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_route53 as route53
 from constructs import Construct
 
 
-class DomainStack(Stack):
+class DomainStack(Construct):
     """Acquires hosted_zone and certificate.
 
     NOTE: Please make sure domain_name is registered in AWS account. This step

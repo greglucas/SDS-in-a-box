@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from aws_cdk import Duration, Stack
+from aws_cdk import Duration, Environment
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
@@ -16,13 +16,14 @@ from constructs import Construct
 from sds_data_manager.stacks.database_stack import SdpDatabase
 
 
-class BatchStarterLambda(Stack):
+class BatchStarterLambda(Construct):
     """Generic Construct with customizable runtime code."""
 
     def __init__(
         self,
         scope: Construct,
         construct_id: str,
+        env: Environment,
         data_bucket: s3.Bucket,
         code_path: str or Path,
         rds_stack: SdpDatabase,
@@ -40,6 +41,8 @@ class BatchStarterLambda(Stack):
             Parent construct.
         construct_id : str
             A unique string identifier for this construct.
+        env : Environment
+            Account and region
         data_bucket: s3.Bucket
             S3 bucket
         code_path : str or Path
@@ -65,8 +68,8 @@ class BatchStarterLambda(Stack):
         lambda_environment = {
             "S3_BUCKET": f"{data_bucket.bucket_name}",
             "SECRET_NAME": rds_stack.rds_creds.secret_name,
-            "ACCOUNT": f"{self.account}",
-            "REGION": f"{self.region}",
+            "ACCOUNT": f"{env.account}",
+            "REGION": f"{env.region}",
         }
 
         self.instrument_lambda = lambda_alpha.PythonFunction(

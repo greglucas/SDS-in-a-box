@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import imap_data_access
-from aws_cdk import App, Environment
+from aws_cdk import App, Environment, Stack
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_rds as rds
 
@@ -45,16 +45,18 @@ def build_sds(
         Account configuration (domain_name and other account specific configurations)
 
     """
+    # TODO: Rename this variable to sdc_stack?
+    scope = Stack(scope, "SDCStack", env=env)
+
     data_bucket = data_bucket_stack.DataBucketStack(
         scope=scope, construct_id="DataBucket", env=env
     )
 
-    networking = networking_stack.NetworkingStack(scope, "Networking", env=env)
+    networking = networking_stack.NetworkingStack(scope, "Networking")
 
     monitoring = monitoring_stack.MonitoringStack(
         scope=scope,
         construct_id="MonitoringStack",
-        env=env,
     )
 
     domain = None
@@ -66,14 +68,12 @@ def build_sds(
             "DomainStack",
             domain_name=domain_name,
             account_name=account_name,
-            env=env,
         )
 
     api = api_gateway_stack.ApiGateway(
         scope,
         "ApiGateway",
         domain_stack=domain,
-        env=env,
     )
     api.deliver_to_sns(monitoring.sns_topic_notifications)
 
@@ -85,8 +85,6 @@ def build_sds(
     rds_stack = database_stack.SdpDatabase(
         scope,
         "RDS",
-        description="IMAP SDP database.",
-        env=env,
         vpc=networking.vpc,
         rds_security_group=networking.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_6,
@@ -101,7 +99,6 @@ def build_sds(
     indexer_lambda_stack.IndexerLambda(
         scope=scope,
         construct_id="IndexerLambda",
-        env=env,
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
         vpc_subnets=rds_stack.rds_subnet_selection,
@@ -122,7 +119,7 @@ def build_sds(
     )
 
     # create EFS
-    efs_instance = efs_stack.EFSStack(scope, "EFSStack", networking.vpc, env=env)
+    efs_instance = efs_stack.EFSStack(scope, "EFSStack", networking.vpc)
 
     lambda_code_directory = Path(__file__).parent.parent / "lambda_code"
     lambda_code_directory_str = str(lambda_code_directory.resolve())
@@ -132,7 +129,6 @@ def build_sds(
         ecr = ecr_stack.EcrStack(
             scope,
             f"{instrument}Ecr",
-            env=env,
             instrument_name=f"{instrument}",
         )
 
@@ -146,7 +142,6 @@ def build_sds(
             db_secret_name=db_secret_name,
             efs_instance=efs_instance,
             account_name=account_name,
-            env=env,
         )
 
     # Create SQS pipeline for each instrument and add it to instrument_sqs
@@ -154,12 +149,12 @@ def build_sds(
         scope,
         "SqsStack",
         instrument_names=imap_data_access.VALID_INSTRUMENTS,
-        env=env,
     ).instrument_queue
 
     instrument_lambdas.BatchStarterLambda(
         scope,
         "BatchStarterLambda",
+        env=env,
         data_bucket=data_bucket.data_bucket,
         code_path=lambda_code_directory_str,
         rds_stack=rds_stack,
@@ -167,13 +162,11 @@ def build_sds(
         subnets=rds_stack.rds_subnet_selection,
         vpc=networking.vpc,
         sqs_queue=instrument_sqs,
-        env=env,
     )
 
     create_schema_stack.CreateSchema(
         scope,
         "CreateSchemaStack",
-        env=env,
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
         vpc_subnets=rds_stack.rds_subnet_selection,
@@ -184,17 +177,16 @@ def build_sds(
     efs_stack.EFSWriteLambda(
         scope=scope,
         construct_id="EFSWriteLambda",
+        env=env,
         vpc=networking.vpc,
         data_bucket=data_bucket.data_bucket,
         efs_instance=efs_instance,
-        env=env,
     )
 
     # I-ALiRT IOIS ECR
     ialirt_ecr = ecr_stack.EcrStack(
         scope,
         "IalirtEcr",
-        env=env,
         instrument_name="IalirtEcr",
     )
 
@@ -211,7 +203,6 @@ def build_sds(
         ialirt_processing_stack.IalirtProcessing(
             scope,
             f"IalirtProcessing{primary_or_secondary}",
-            env=env,
             vpc=networking.vpc,
             repo=ialirt_ecr.container_repo,
             processing_name=primary_or_secondary,

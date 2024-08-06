@@ -8,7 +8,7 @@ resources utilizing Fargate as the compute environment. The resources include:
   - Batch job queue and job definition.
 """
 
-from aws_cdk import Fn, Stack
+from aws_cdk import Fn
 from aws_cdk import aws_batch as batch
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
@@ -20,7 +20,7 @@ from constructs import Construct
 from sds_data_manager.stacks.efs_stack import EFSStack
 
 
-class FargateBatchResources(Stack):
+class FargateBatchResources(Construct):
     """Fargate Batch compute env with named Job Queue, and Job Definition."""
 
     def __init__(

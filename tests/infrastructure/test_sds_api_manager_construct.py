@@ -1,6 +1,7 @@
 """Test the SDS API manager stack."""
 
 import pytest
+from aws_cdk import aws_lambda as lambda_
 from aws_cdk.assertions import Template
 
 from sds_data_manager.constructs.api_gateway_construct import ApiGateway
@@ -21,12 +22,14 @@ def template(stack, env):
     SdsApiManager(
         stack,
         "api-manager",
+        code=lambda_.Code.from_inline("def handler(event, context):\n    pass"),
         env=env,
         api=apigw,
         data_bucket=data_bucket.data_bucket,
         vpc=networking_construct.vpc,
         rds_security_group=networking_construct.rds_security_group,
         db_secret_name="test-secrets",  # noqa
+        layers=[],
     )
 
     template = Template.from_stack(stack)

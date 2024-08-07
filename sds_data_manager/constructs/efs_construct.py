@@ -137,6 +137,7 @@ class EFSWriteLambda(Construct):
         self,
         scope: Construct,
         construct_id: str,
+        code: aws_lambda.Code,
         env: Environment,
         vpc: ec2.Vpc,
         data_bucket: s3.Bucket,
@@ -151,6 +152,8 @@ class EFSWriteLambda(Construct):
             Parent construct.
         construct_id : str
             A unique string identifier for this construct.
+        code : aws_lambda.Code
+            Lambda code bundle
         env : Environment
             Account and region
         vpc : ec2.Vpc
@@ -211,16 +214,12 @@ class EFSWriteLambda(Construct):
             local_mount_path=lambda_mount_path,
         )
 
-        lambda_code = aws_lambda.Code.from_asset(
-            "sds_data_manager/lambda_code/efs_lambda"
-        )
-
         self.efs_spice_ingest_lambda = aws_lambda.Function(
             self,
             "EFSWriteLambda",
             function_name="efs-write-lambda",
             runtime=aws_lambda.Runtime.PYTHON_3_11,
-            code=lambda_code,
+            code=code,
             handler="lambda_function.lambda_handler",
             role=efs_lambda_role,
             description="Lambda that write data to the EFS",

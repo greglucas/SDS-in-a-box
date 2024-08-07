@@ -2,6 +2,7 @@
 
 import pytest
 from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_rds as rds
 from aws_cdk.assertions import Match, Template
 
@@ -35,10 +36,12 @@ def template(stack):
     CreateSchema(
         stack,
         construct_id="CreateSchema",
+        code=lambda_.Code.from_inline("def handler(event, context):\n    pass"),
         db_secret_name="0123456789",  # noqa
         vpc=networking_construct.vpc,
         vpc_subnets=database_construct.rds_subnet_selection,
         rds_security_group=networking_construct.rds_security_group,
+        layers=[],
     )
     template = Template.from_stack(stack)
 
@@ -59,10 +62,10 @@ def test_create_schema(template):
         "AWS::Lambda::Function",
         props={
             "FunctionName": "create-schema",
-            "Runtime": "python3.9",
+            "Runtime": "python3.12",
             "Handler": "SDSCode.create_schema.lambda_handler",
             "MemorySize": 1000,
-            "Timeout": 10,
+            "Timeout": 60,
             "Role": {
                 "Fn::GetAtt": [
                     Match.string_like_regexp("CreateMetadataSchemaServiceRole*"),

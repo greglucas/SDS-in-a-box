@@ -1,12 +1,9 @@
 """Configure the schema stack."""
 
-import pathlib
-
-import aws_cdk
+import aws_cdk as cdk
 from aws_cdk import CustomResource
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_lambda as lambda_
-from aws_cdk import aws_lambda_python_alpha as lambda_alpha_
 from aws_cdk import aws_secretsmanager as secrets
 from aws_cdk import custom_resources as cr
 from constructs import Construct
@@ -19,10 +16,12 @@ class CreateSchema(Construct):
         self,
         scope: Construct,
         construct_id: str,
+        code: lambda_.Code,
         db_secret_name: str,
         vpc: ec2.Vpc,
         vpc_subnets,
         rds_security_group,
+        layers: list,
         **kwargs,
     ) -> None:
         """Create schema stack.
@@ -33,6 +32,8 @@ class CreateSchema(Construct):
             The App object in which to create this Construct
         construct_id : str
             The ID (name) of the stack
+        code : lambda_.Code
+            The lambda code bundle
         db_secret_name : str
             The DB secret name
         vpc : ec2.Vpc
@@ -41,23 +42,22 @@ class CreateSchema(Construct):
             The VPC subnets
         rds_security_group : obj
             The RDS security group
+        layers : list
+            List of Lambda layers cdk.cdfnOutput names
         kwargs : dict
             Keyword arguments
 
         """
         super().__init__(scope, construct_id, **kwargs)
 
-        schema_create_lambda = lambda_alpha_.PythonFunction(
+        schema_create_lambda = lambda_.Function(
             self,
             id="CreateMetadataSchema",
             function_name="create-schema",
-            entry=str(
-                pathlib.Path(__file__).parent.joinpath("..", "lambda_code").resolve()
-            ),
-            index="SDSCode/create_schema.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
-            timeout=aws_cdk.Duration.seconds(10),
+            code=code,
+            handler="SDSCode.create_schema.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            timeout=cdk.Duration.seconds(60),
             memory_size=1000,
             allow_public_subnet=True,
             vpc=vpc,
@@ -66,6 +66,8 @@ class CreateSchema(Construct):
             environment={
                 "SECRET_NAME": db_secret_name,
             },
+            layers=layers,
+            architecture=lambda_.Architecture.ARM_64,
         )
 
         res_provider = cr.Provider(

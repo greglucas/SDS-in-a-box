@@ -5,6 +5,7 @@ from pathlib import Path
 import imap_data_access
 from aws_cdk import App, Environment, Stack
 from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_rds as rds
 
 from sds_data_manager.constructs import (
@@ -21,6 +22,7 @@ from sds_data_manager.constructs import (
     ialirt_processing_construct,
     indexer_lambda_construct,
     instrument_lambdas,
+    lambda_layer_construct,
     monitoring_construct,
     networking_construct,
     sds_api_manager_construct,
@@ -97,35 +99,49 @@ def build_sds(
         database_name="imap",
     )
 
+    # create Code asset and Layer for Lambda(s)
+    layer_code_directory = (
+        Path(__file__).parent.parent.parent / "lambda_layer/python"
+    ).resolve()
+    lambda_code_directory = Path(__file__).parent.parent / "lambda_code"
+
+    lambda_code = lambda_.Code.from_asset(str(lambda_code_directory))
+    db_lambda_layer = lambda_layer_construct.LambdaLayerConstruct(
+        scope=sdc_stack,
+        id="DatabaseDependencies",
+        layer_dependencies_dir=str(layer_code_directory),
+    )
+
     indexer_lambda_construct.IndexerLambda(
         scope=sdc_stack,
         construct_id="IndexerLambda",
+        code=lambda_code,
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
         vpc_subnets=rds_construct.rds_subnet_selection,
         rds_security_group=networking.rds_security_group,
         data_bucket=data_bucket.data_bucket,
         sns_topic=monitoring.sns_topic_notifications,
+        layers=[db_lambda_layer],
     )
 
     sds_api_manager_construct.SdsApiManager(
         scope=sdc_stack,
         construct_id="SdsApiManager",
+        code=lambda_code,
         api=api,
         env=env,
         data_bucket=data_bucket.data_bucket,
         vpc=networking.vpc,
         rds_security_group=networking.rds_security_group,
         db_secret_name=db_secret_name,
+        layers=[db_lambda_layer],
     )
 
     # create EFS
     efs_instance = efs_construct.EFSConstruct(
         scope=sdc_stack, construct_id="EFSConstruct", vpc=networking.vpc
     )
-
-    lambda_code_directory = Path(__file__).parent.parent / "lambda_code"
-    lambda_code_directory_str = str(lambda_code_directory.resolve())
 
     # This valid instrument list is from imap-data-access package
     for instrument in imap_data_access.VALID_INSTRUMENTS:
@@ -159,27 +175,31 @@ def build_sds(
         construct_id="BatchStarterLambda",
         env=env,
         data_bucket=data_bucket.data_bucket,
-        code_path=lambda_code_directory_str,
+        code=lambda_code,
         rds_construct=rds_construct,
         rds_security_group=networking.rds_security_group,
         subnets=rds_construct.rds_subnet_selection,
         vpc=networking.vpc,
         sqs_queue=instrument_sqs,
+        layers=[db_lambda_layer],
     )
 
     create_schema_construct.CreateSchema(
         scope=sdc_stack,
         construct_id="CreateSchemaConstruct",
+        code=lambda_code,
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
         vpc_subnets=rds_construct.rds_subnet_selection,
         rds_security_group=networking.rds_security_group,
+        layers=[db_lambda_layer],
     )
 
     # create lambda that mounts EFS and writes data to EFS
     efs_construct.EFSWriteLambda(
         scope=sdc_stack,
         construct_id="EFSWriteLambda",
+        code=lambda_code,
         env=env,
         vpc=networking.vpc,
         data_bucket=data_bucket.data_bucket,

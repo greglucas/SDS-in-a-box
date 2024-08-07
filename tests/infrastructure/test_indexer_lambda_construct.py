@@ -2,6 +2,7 @@
 
 import pytest
 from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_rds as rds
 from aws_cdk.assertions import Template
 
@@ -39,12 +40,14 @@ def template(stack, env):
     IndexerLambda(
         stack,
         "indexer-lambda",
+        code=lambda_.Code.from_inline("def handler(event, context):\n    pass"),
         db_secret_name="test-secrets",  # noqa
         vpc=networking_construct.vpc,
         vpc_subnets=database_construct.rds_subnet_selection,
         rds_security_group=networking_construct.rds_security_group,
         data_bucket=data_bucket.data_bucket,
         sns_topic=monitoring_construct.sns_topic_notifications,
+        layers=[],
     )
 
     template = Template.from_stack(stack)

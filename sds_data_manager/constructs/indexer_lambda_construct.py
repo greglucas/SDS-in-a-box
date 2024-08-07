@@ -1,14 +1,11 @@
 """Configure the indexer lambda stack."""
 
-import pathlib
-
 import aws_cdk as cdk
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
-from aws_cdk import aws_lambda_python_alpha as lambda_alpha_
 from aws_cdk import aws_secretsmanager as secrets
 from constructs import Construct
 
@@ -20,12 +17,14 @@ class IndexerLambda(Construct):
         self,
         scope: Construct,
         construct_id: str,
+        code: lambda_.Code,
         db_secret_name: str,
         vpc: ec2.Vpc,
         vpc_subnets,
         rds_security_group,
         data_bucket,
         sns_topic,
+        layers: list,
         **kwargs,
     ) -> None:
         """IndexerLambda Construct.
@@ -36,6 +35,8 @@ class IndexerLambda(Construct):
             Parent construct.
         construct_id : str
             A unique string identifier for this construct.
+        code : aws_lambda.Code
+            Lambda code bundle
         db_secret_name : str
             The DB secret name
         vpc : obj
@@ -49,22 +50,21 @@ class IndexerLambda(Construct):
         sns_topic : aws_sns.Topic
             SNS Topic for sending notifications so that external
             resources can subscribe to for alerts.
+        layers : list
+            List of Lambda layers cdk.cdfnOutput names
         kwargs : dict
             Keyword arguments
 
         """
         super().__init__(scope, construct_id, **kwargs)
 
-        indexer_lambda = lambda_alpha_.PythonFunction(
+        indexer_lambda = lambda_.Function(
             self,
             id="IndexerLambda",
             function_name="file-indexer",
-            entry=str(
-                pathlib.Path(__file__).parent.joinpath("..", "lambda_code").resolve()
-            ),
-            index="SDSCode/indexer.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_9,
+            code=code,
+            handler="SDSCode.indexer.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
             timeout=cdk.Duration.minutes(1),
             memory_size=1000,
             allow_public_subnet=True,
@@ -76,6 +76,8 @@ class IndexerLambda(Construct):
                 "S3_BUCKET": data_bucket.bucket_name,
                 "SECRET_NAME": db_secret_name,
             },
+            layers=layers,
+            architecture=lambda_.Architecture.ARM_64,
         )
 
         # Adding events and s3 permission because indexer

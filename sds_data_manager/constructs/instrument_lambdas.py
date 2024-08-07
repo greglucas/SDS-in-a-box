@@ -1,12 +1,9 @@
 """Module containing constructs for instrumenting Lambda functions."""
 
-from pathlib import Path
-
 from aws_cdk import Duration, Environment
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
-from aws_cdk import aws_lambda_python_alpha as lambda_alpha
 from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_secretsmanager as secrets
 from aws_cdk import aws_sqs as sqs
@@ -25,12 +22,13 @@ class BatchStarterLambda(Construct):
         construct_id: str,
         env: Environment,
         data_bucket: s3.Bucket,
-        code_path: str or Path,
+        code: lambda_.Code,
         rds_construct: SdpDatabase,
         rds_security_group: ec2.SecurityGroup,
         subnets: ec2.SubnetSelection,
         vpc: ec2.Vpc,
         sqs_queue: sqs.Queue,
+        layers: list,
         **kwargs,
     ):
         """BatchStarterLambda Constructor.
@@ -45,8 +43,8 @@ class BatchStarterLambda(Construct):
             Account and region
         data_bucket: s3.Bucket
             S3 bucket
-        code_path : str or Path
-            Path to the Lambda code directory
+        code : lambda_.Code
+            Lambda code bundle
         rds_construct: SdpDatabase
             Database stack
         rds_security_group : ec2.SecurityGroup
@@ -57,6 +55,8 @@ class BatchStarterLambda(Construct):
             VPC into which to put the resources that require networking.
         sqs_queue: sqs.Queue
             A FIFO queue to trigger the lambda with.
+        layers : list
+            List of Lambda layers cdk.cdfnOutput names
         kwargs : dict
             Keyword arguments
 
@@ -72,22 +72,22 @@ class BatchStarterLambda(Construct):
             "REGION": f"{env.region}",
         }
 
-        self.instrument_lambda = lambda_alpha.PythonFunction(
+        self.instrument_lambda = lambda_.Function(
             self,
             "BatchStarterLambda",
             function_name="BatchStarterLambda",
-            entry=str(Path(__file__).parent.joinpath("..", "lambda_code").resolve()),
-            index="SDSCode/batch_starter.py",
-            handler="lambda_handler",
-            runtime=lambda_.Runtime.PYTHON_3_11,
+            code=code,
+            handler="SDSCode.batch_starter.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
             environment=lambda_environment,
-            retry_attempts=0,
             memory_size=512,
             timeout=Duration.minutes(1),
             vpc=vpc,
             vpc_subnets=subnets,
             security_groups=[rds_security_group],
             allow_public_subnet=True,
+            layers=layers,
+            architecture=lambda_.Architecture.ARM_64,
         )
 
         # Permissions to send event to EventBridge

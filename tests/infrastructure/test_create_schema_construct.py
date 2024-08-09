@@ -23,7 +23,6 @@ def template(stack):
         stack,
         "RDS",
         vpc=networking_construct.vpc,
-        rds_security_group=networking_construct.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
         instance_size=ec2.InstanceSize[rds_size],
         instance_class=ec2.InstanceClass[rds_class],
@@ -40,7 +39,7 @@ def template(stack):
         db_secret_name="0123456789",  # noqa
         vpc=networking_construct.vpc,
         vpc_subnets=database_construct.rds_subnet_selection,
-        rds_security_group=networking_construct.rds_security_group,
+        rds_security_group=database_construct.rds_security_group,
         layers=[],
     )
     template = Template.from_stack(stack)

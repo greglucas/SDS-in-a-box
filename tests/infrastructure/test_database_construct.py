@@ -20,7 +20,6 @@ def template(stack):
         stack,
         "RDS",
         vpc=networking_construct.vpc,
-        rds_security_group=networking_construct.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_3,
         instance_size=ec2.InstanceSize[rds_size],
         instance_class=ec2.InstanceClass[rds_class],

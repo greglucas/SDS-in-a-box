@@ -1,13 +1,10 @@
 """Test the API gateway stack."""
 
-from pathlib import Path
-
 import pytest
-from aws_cdk import Duration, aws_lambda, aws_sns
+from aws_cdk import aws_lambda, aws_sns
 from aws_cdk.assertions import Match, Template
 
-from sds_data_manager.constructs.api_gateway_construct import ApiGateway, APILambda
-from sds_data_manager.constructs.networking_construct import NetworkingConstruct
+from sds_data_manager.constructs.api_gateway_construct import ApiGateway
 
 
 @pytest.fixture()
@@ -27,30 +24,6 @@ def template(stack):
     )
     apigw.deliver_to_sns(sns_topic=test_sns_topic)
     apigw.add_route("test-route", "GET", test_func)
-    template = Template.from_stack(stack)
-    return template
-
-
-@pytest.fixture()
-def lambda_template(stack):
-    """Return a template for the API lambda stack."""
-    lambda_code_directory = (
-        Path(__file__).parent.parent.parent / "sds_data_manager/lambda_code"
-    )
-    spin_table_code = lambda_code_directory / "spin_table_api.py"
-    vpc = NetworkingConstruct(stack, "networking-stack")
-    APILambda(
-        stack,
-        "SpinLambda",
-        lambda_name="test-lambda",
-        code_path=spin_table_code,
-        lambda_handler="lambda_handler",
-        timeout=Duration.seconds(60),
-        rds_security_group=vpc.rds_security_group,
-        db_secret_name="test-creds",  # noqa
-        vpc=vpc.vpc,
-    )
-
     template = Template.from_stack(stack)
     return template
 
@@ -93,20 +66,5 @@ def test_cloudwatch_alarm(template):
             "Statistic": "Maximum",
             "Threshold": 10000,
             "TreatMissingData": "notBreaching",
-        },
-    )
-
-
-def test_api_lambda(lambda_template):
-    """Ensure that the lambda template is configured properly."""
-    lambda_template.resource_count_is("AWS::Lambda::Function", 1)
-    lambda_template.resource_count_is("AWS::IAM::Role", 1)
-    lambda_template.resource_count_is("AWS::IAM::Policy", 1)
-    lambda_template.has_resource_properties(
-        "AWS::Lambda::Function",
-        props={
-            "Handler": "spin_table_api.lambda_handler",
-            "FunctionName": "test-lambda",
-            "Timeout": 60,
         },
     )

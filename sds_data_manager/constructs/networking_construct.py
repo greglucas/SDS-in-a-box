@@ -52,37 +52,3 @@ class NetworkingConstruct(Construct):
                 ),
             ],
         )
-
-        # Adding this endpoint so that lambda within
-        # this VPC can perform boto3.client("events")
-        # or boto3.client("batch") operations
-        self.vpc.add_interface_endpoint(
-            "EventBridgeEndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.EVENTBRIDGE,
-        )
-        self.vpc.add_interface_endpoint(
-            "BatchJobEndpoint", service=ec2.InterfaceVpcEndpointAwsService.BATCH
-        )
-
-        # Create security group for the RDS instance
-        self.rds_security_group = ec2.SecurityGroup(
-            self, "RdsSecurityGroup", vpc=self.vpc, allow_all_outbound=True
-        )
-
-        # Setup a security group for the Fargate-generated EC2 instances.
-        self.batch_security_group = ec2.SecurityGroup(
-            self, "FargateInstanceSecurityGroup", vpc=self.vpc
-        )
-
-        # The lambda is in the same private security group as the RDS, but
-        # it needs to access the secrets manager, so we add this endpoint.
-        self.vpc.add_interface_endpoint(
-            "SecretManagerEndpoint",
-            service=ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
-            subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
-            private_dns_enabled=True,
-        )
-
-        self.rds_security_group.add_ingress_rule(
-            self.batch_security_group, ec2.Port.tcp(5432), "Access from Fargate Batch"
-        )

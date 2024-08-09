@@ -13,7 +13,6 @@ class SdpDatabase(Construct):
         scope: Construct,
         construct_id: str,
         vpc: ec2.Vpc,
-        rds_security_group,
         engine_version: rds.PostgresEngineVersion,
         instance_size: ec2.InstanceSize,
         instance_class: ec2.InstanceClass,
@@ -33,8 +32,6 @@ class SdpDatabase(Construct):
             The ID (name) of the stack
         vpc : ec2.Vpc
             Virtual private cloud
-        rds_security_group : obj
-            The RDS security group
         engine_version : rds.PostgresEngineVersion
             Version of postgres database to use
         instance_size : ec2.InstanceSize
@@ -57,15 +54,18 @@ class SdpDatabase(Construct):
 
         self.secret_name = secret_name
 
+        self.rds_security_group = ec2.SecurityGroup(
+            scope, "RdsSecurityGroup", vpc=vpc, allow_all_outbound=True
+        )
         # Allow ingress to LASP IP address range and specific port
-        rds_security_group.add_ingress_rule(
+        self.rds_security_group.add_ingress_rule(
             peer=ec2.Peer.ipv4("128.138.131.0/24"),
             connection=ec2.Port.tcp(5432),
             description="Ingress RDS",
         )
 
         # Lambda was put into the same security group as the RDS, but we still need this
-        rds_security_group.connections.allow_internally(
+        self.rds_security_group.connections.allow_internally(
             ec2.Port.all_traffic(), description="Lambda ingress"
         )
 
@@ -96,7 +96,7 @@ class SdpDatabase(Construct):
             vpc=vpc,
             vpc_subnets=self.rds_subnet_selection,
             credentials=rds.Credentials.from_secret(self.rds_creds),
-            security_groups=[rds_security_group],
+            security_groups=[self.rds_security_group],
             publicly_accessible=True,
             max_allocated_storage=max_allocated_storage,
             deletion_protection=False,

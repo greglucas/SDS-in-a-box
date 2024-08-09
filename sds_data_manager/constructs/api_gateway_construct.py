@@ -6,19 +6,13 @@ lambda function.
 An example of the format of the url: https://api.prod.imap-mission.com/query
 """
 
-from pathlib import Path
-from typing import Optional
-
 from aws_cdk import Duration, aws_sns
 from aws_cdk import aws_apigateway as apigw
 from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_cloudwatch_actions as cloudwatch_actions
-from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_lambda as lambda_
-from aws_cdk import aws_lambda_python_alpha as lambda_alpha_
 from aws_cdk import aws_route53 as route53
 from aws_cdk import aws_route53_targets as targets
-from aws_cdk import aws_secretsmanager as secrets
 from constructs import Construct
 
 from sds_data_manager.constructs.domain_construct import DomainConstruct
@@ -162,72 +156,3 @@ class ApiGateway(Construct):
 
         # Create a new method that is linked to the Lambda function
         resource.add_method(http_method, apigw.LambdaIntegration(lambda_function))
-
-
-class APILambda(Construct):
-    """Generic Construct to create API handler Lambda."""
-
-    def __init__(
-        self,
-        scope: Construct,
-        construct_id: str,
-        lambda_name: str,
-        code_path: Path,
-        lambda_handler: str,
-        timeout: Duration,
-        rds_security_group: ec2.SecurityGroup,
-        db_secret_name: str,
-        vpc: ec2.Vpc,
-        environment: Optional[dict] = None,
-        **kwargs,
-    ):
-        """Lambda Constructor.
-
-        Parameters
-        ----------
-        scope : Construct
-            Parent construct.
-        construct_id : str
-            A unique string identifier for this construct.
-        lambda_name : str
-            Lambda name
-        code_path : Path
-            Path to the Lambda code directory
-        lambda_handler : str
-            Lambda handler's function name
-        timeout : Duration
-            Lambda timeout
-        rds_security_group : ec2.SecurityGroup
-            RDS security group
-        db_secret_name : str
-            RDS secret name for secret manager access
-        vpc : ec2.Vpc
-            VPC into which to put the resources that require networking.
-        environment: dict
-            Lambda's environment variables.
-        kwargs : dict
-            Keyword arguments
-
-        """
-        super().__init__(scope, construct_id, **kwargs)
-
-        self.lambda_function = lambda_alpha_.PythonFunction(
-            self,
-            id=lambda_name,
-            function_name=lambda_name,
-            entry=str(code_path.parent / "SDSCode"),  # This gives folder path
-            index=str(code_path.name),  # This gives file name
-            handler=lambda_handler,  # This points to function inside the file
-            runtime=lambda_.Runtime.PYTHON_3_11,
-            timeout=timeout,
-            memory_size=512,
-            environment=environment,
-            vpc=vpc,
-            security_groups=[rds_security_group],
-            allow_public_subnet=True,
-        )
-
-        rds_secret = secrets.Secret.from_secret_name_v2(
-            self, "rds_secret", db_secret_name
-        )
-        rds_secret.grant_read(grantee=self.lambda_function)

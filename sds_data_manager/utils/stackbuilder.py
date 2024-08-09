@@ -53,6 +53,27 @@ def build_sds(
     )
 
     sdc_stack = Stack(scope, "SDCStack", env=env)
+
+    # Adding this endpoint so that lambda within
+    # this VPC can perform boto3.client("events")
+    # or boto3.client("batch") operations
+    networking.vpc.add_interface_endpoint(
+        "EventBridgeEndpoint",
+        service=ec2.InterfaceVpcEndpointAwsService.EVENTBRIDGE,
+    )
+    networking.vpc.add_interface_endpoint(
+        "BatchJobEndpoint", service=ec2.InterfaceVpcEndpointAwsService.BATCH
+    )
+
+    # The lambda is in the same private security group as the RDS, but
+    # it needs to access the secrets manager, so we add this endpoint.
+    networking.vpc.add_interface_endpoint(
+        "SecretManagerEndpoint",
+        service=ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+        subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
+        private_dns_enabled=True,
+    )
+
     data_bucket = data_bucket_construct.DataBucketConstruct(
         scope=sdc_stack, construct_id="DataBucket", env=env
     )
@@ -89,7 +110,6 @@ def build_sds(
         scope=sdc_stack,
         construct_id="RDS",
         vpc=networking.vpc,
-        rds_security_group=networking.rds_security_group,
         engine_version=rds.PostgresEngineVersion.VER_15_6,
         instance_size=ec2.InstanceSize[rds_size],
         instance_class=ec2.InstanceClass[rds_class],
@@ -119,7 +139,7 @@ def build_sds(
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
         vpc_subnets=rds_construct.rds_subnet_selection,
-        rds_security_group=networking.rds_security_group,
+        rds_security_group=rds_construct.rds_security_group,
         data_bucket=data_bucket.data_bucket,
         sns_topic=monitoring.sns_topic_notifications,
         layers=[db_lambda_layer],
@@ -133,7 +153,7 @@ def build_sds(
         env=env,
         data_bucket=data_bucket.data_bucket,
         vpc=networking.vpc,
-        rds_security_group=networking.rds_security_group,
+        rds_security_group=rds_construct.rds_security_group,
         db_secret_name=db_secret_name,
         layers=[db_lambda_layer],
     )
@@ -177,7 +197,7 @@ def build_sds(
         data_bucket=data_bucket.data_bucket,
         code=lambda_code,
         rds_construct=rds_construct,
-        rds_security_group=networking.rds_security_group,
+        rds_security_group=rds_construct.rds_security_group,
         subnets=rds_construct.rds_subnet_selection,
         vpc=networking.vpc,
         sqs_queue=instrument_sqs,
@@ -191,7 +211,7 @@ def build_sds(
         db_secret_name=db_secret_name,
         vpc=networking.vpc,
         vpc_subnets=rds_construct.rds_subnet_selection,
-        rds_security_group=networking.rds_security_group,
+        rds_security_group=rds_construct.rds_security_group,
         layers=[db_lambda_layer],
     )
 

@@ -1,6 +1,7 @@
 """Test the SDS API manager stack."""
 
 import pytest
+from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk.assertions import Template
 
@@ -15,6 +16,9 @@ def template(stack, env):
     """Return the data bucket stack."""
     data_bucket = DataBucketConstruct(stack, "indexer-data-bucket", env=env)
     networking_construct = NetworkingConstruct(stack, "Networking")
+    test_security_group = ec2.SecurityGroup(
+        stack, "TestSecurityGroup", vpc=networking_construct.vpc
+    )
     apigw = ApiGateway(
         stack,
         construct_id="Api-manager-ApigwTest",
@@ -27,7 +31,7 @@ def template(stack, env):
         api=apigw,
         data_bucket=data_bucket.data_bucket,
         vpc=networking_construct.vpc,
-        rds_security_group=networking_construct.rds_security_group,
+        rds_security_group=test_security_group,
         db_secret_name="test-secrets",  # noqa
         layers=[],
     )

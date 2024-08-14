@@ -65,9 +65,11 @@ class SdpDatabase(Construct):
         )
 
         # Lambda was put into the same security group as the RDS, but we still need this
-        self.rds_security_group.connections.allow_internally(
-            ec2.Port.all_traffic(), description="Lambda ingress"
-        )
+        # TODO: Is this still needed? We get a warning in the CDK logs with it
+        #       because allow_all_outbound is set to True already.
+        # self.rds_security_group.connections.allow_internally(
+        #     ec2.Port.all_traffic(), description="Lambda ingress"
+        # )
 
         # Secrets manager credentials
         # NOTE:

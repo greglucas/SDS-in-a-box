@@ -18,6 +18,7 @@ from sds_data_manager.constructs import (
     ecr_construct,
     efs_construct,
     ialirt_bucket_construct,
+    ialirt_ingest_lambda_construct,
     ialirt_processing_construct,
     indexer_lambda_construct,
     instrument_lambdas,
@@ -206,7 +207,7 @@ def build_sds(
         layers=[db_lambda_layer],
     )
 
-    # create lambda that mounts EFS and writes data to EFS
+    # Create lambda that mounts EFS and writes data to EFS
     efs_construct.EFSWriteLambda(
         scope=sdc_stack,
         construct_id="EFSWriteLambda",
@@ -245,6 +246,13 @@ def build_sds(
             container_port=container_ports[primary_or_secondary],
             ialirt_bucket=ialirt_bucket.ialirt_bucket,
         )
+
+    # I-ALiRT IOIS ingest lambda (facilitates s3 to dynamodb)
+    ialirt_ingest_lambda_construct.IalirtIngestLambda(
+        scope=ialirt_stack,
+        construct_id="IalirtIngestLambda",
+        ialirt_bucket=ialirt_bucket.ialirt_bucket,
+    )
 
 
 def build_backup(scope: App, env: Environment, source_account: str):

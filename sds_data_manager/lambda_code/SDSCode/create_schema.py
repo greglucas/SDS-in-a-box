@@ -20,6 +20,12 @@ def lambda_handler(event, context):
     logger.info("Creating RDS tables")
     logger.info(event)
 
+    # NOTE: If we run this when trying to delete the stack, it fails because
+    #       the RDS isn't available, so skip it here.
+    if event.get("RequestType") != "Create":
+        logger.info("Skipping schema creation, only handling Create requests")
+        return
+
     # Create tables
     Base.metadata.create_all(db.get_engine())
 

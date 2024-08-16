@@ -8,7 +8,6 @@ resources utilizing Fargate as the compute environment. The resources include:
   - Batch job queue and job definition.
 """
 
-from aws_cdk import Fn
 from aws_cdk import aws_batch as batch
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_ecr as ecr
@@ -189,16 +188,11 @@ class FargateBatchResources(Construct):
                     {
                         "name": efs_instance.volume_name,
                         "efsVolumeConfiguration": {
-                            "fileSystemId": Fn.import_value(
-                                efs_instance.efs_fs_id_name
-                            ),
+                            "fileSystemId": efs_instance.efs.file_system_id,
                             "rootDirectory": "/",
                             "transitEncryption": "ENABLED",
                             "transitEncryptionPort": 2049,
                             "authorizationConfig": {
-                                "accessPointId": Fn.import_value(
-                                    efs_instance.spice_access_point_id_name
-                                ),
                                 "iam": "ENABLED",
                             },
                         },

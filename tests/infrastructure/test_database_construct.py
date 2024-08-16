@@ -10,7 +10,7 @@ from sds_data_manager.constructs.networking_construct import NetworkingConstruct
 
 
 @pytest.fixture()
-def template(stack):
+def template(stack, code):
     """Return a database template."""
     networking_construct = NetworkingConstruct(stack, "Networking")
     rds_size = "SMALL"
@@ -27,6 +27,8 @@ def template(stack):
         username="imap",
         secret_name="sdp-database-creds-rds",  # noqa
         database_name="imapdb",
+        code=code,
+        layers=[],
     )
     template = Template.from_stack(stack)
 
@@ -61,5 +63,33 @@ def test_database_construct(template):
             "MaxAllocatedStorage": 200,
             "PubliclyAccessible": True,
             "StorageType": "gp2",
+        },
+    )
+
+
+def test_create_schema(template):
+    """Ensure that the template has the appropriate lambdas."""
+    # there is a lambda for creating the schema and another lambda
+    # that gets created for the "Provider Framework Event".
+    template.resource_count_is("AWS::Lambda::Function", 2)
+    template.resource_count_is("AWS::IAM::Policy", 2)
+    template.resource_count_is("AWS::IAM::Role", 2)
+    template.resource_count_is("AWS::CloudFormation::CustomResource", 1)
+
+    # Lambda properties
+    template.has_resource_properties(
+        "AWS::Lambda::Function",
+        props={
+            "FunctionName": "create-schema",
+            "Runtime": "python3.12",
+            "Handler": "SDSCode.create_schema.lambda_handler",
+            "MemorySize": 1000,
+            "Timeout": 60,
+            "Role": {
+                "Fn::GetAtt": [
+                    Match.string_like_regexp("CreateMetadataSchemaServiceRole*"),
+                    "Arn",
+                ]
+            },
         },
     )

@@ -1,7 +1,7 @@
 """Setup items for the infrastructure tests."""
 
 import pytest
-from aws_cdk import App, Environment, Stack
+from aws_cdk import App, Environment, Stack, aws_lambda
 
 
 @pytest.fixture()
@@ -32,3 +32,9 @@ def app():
 def stack(app, env):
     """Return the stack to test with."""
     return Stack(app, "TestStack", env=env)
+
+
+@pytest.fixture()
+def code():
+    """Return a lambda code object."""
+    return aws_lambda.Code.from_inline("def handler(event, context):\n    pass")

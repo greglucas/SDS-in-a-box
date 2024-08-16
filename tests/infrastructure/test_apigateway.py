@@ -8,12 +8,12 @@ from sds_data_manager.constructs.api_gateway_construct import ApiGateway
 
 
 @pytest.fixture()
-def template(stack):
+def template(stack, code):
     """Return a template for the API gateway stack."""
     test_func = aws_lambda.Function(
         stack,
         "test-function",
-        code=aws_lambda.Code.from_inline("def handler(event, context):\n    pass"),
+        code=code,
         handler="handler",
         runtime=aws_lambda.Runtime.PYTHON_3_9,
     )

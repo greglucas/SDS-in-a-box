@@ -12,7 +12,6 @@ from sds_data_manager.constructs import (
     api_gateway_construct,
     backup_bucket_construct,
     batch_compute_resources,
-    create_schema_construct,
     data_bucket_construct,
     database_construct,
     domain_construct,
@@ -101,24 +100,6 @@ def build_sds(
     )
     api.deliver_to_sns(monitoring.sns_topic_notifications)
 
-    # Get RDS properties from account_config
-    rds_size = account_config.get("rds_size", "SMALL")
-    rds_class = account_config.get("rds_class", "BURSTABLE3")
-    rds_storage = account_config.get("rds_construct", 200)
-    db_secret_name = "sdp-database-cred"  # noqa
-    rds_construct = database_construct.SdpDatabase(
-        scope=sdc_stack,
-        construct_id="RDS",
-        vpc=networking.vpc,
-        engine_version=rds.PostgresEngineVersion.VER_15_6,
-        instance_size=ec2.InstanceSize[rds_size],
-        instance_class=ec2.InstanceClass[rds_class],
-        max_allocated_storage=rds_storage,
-        username="imap_user",
-        secret_name=db_secret_name,
-        database_name="imap",
-    )
-
     # create Code asset and Layer for Lambda(s)
     layer_code_directory = (
         Path(__file__).parent.parent.parent / "lambda_layer/python"
@@ -130,6 +111,27 @@ def build_sds(
         scope=sdc_stack,
         id="DatabaseDependencies",
         layer_dependencies_dir=str(layer_code_directory),
+    ).layer
+
+    # Get RDS properties from account_config
+    rds_size = account_config.get("rds_size", "SMALL")
+    rds_class = account_config.get("rds_class", "BURSTABLE3")
+    rds_storage = account_config.get("rds_construct", 200)
+    db_secret_name = "sdp-database-cred"  # noqa
+    # Create an RDS instance and a Lambda function to automatically create the schema
+    rds_construct = database_construct.SdpDatabase(
+        scope=sdc_stack,
+        construct_id="RDS",
+        vpc=networking.vpc,
+        engine_version=rds.PostgresEngineVersion.VER_15_6,
+        instance_size=ec2.InstanceSize[rds_size],
+        instance_class=ec2.InstanceClass[rds_class],
+        max_allocated_storage=rds_storage,
+        username="imap_user",
+        secret_name=db_secret_name,
+        database_name="imap",
+        code=lambda_code,
+        layers=[db_lambda_layer],
     )
 
     indexer_lambda_construct.IndexerLambda(
@@ -204,17 +206,6 @@ def build_sds(
         layers=[db_lambda_layer],
     )
 
-    create_schema_construct.CreateSchema(
-        scope=sdc_stack,
-        construct_id="CreateSchemaConstruct",
-        code=lambda_code,
-        db_secret_name=db_secret_name,
-        vpc=networking.vpc,
-        vpc_subnets=rds_construct.rds_subnet_selection,
-        rds_security_group=rds_construct.rds_security_group,
-        layers=[db_lambda_layer],
-    )
-
     # create lambda that mounts EFS and writes data to EFS
     efs_construct.EFSWriteLambda(
         scope=sdc_stack,
@@ -223,7 +214,7 @@ def build_sds(
         env=env,
         vpc=networking.vpc,
         data_bucket=data_bucket.data_bucket,
-        efs_instance=efs_instance,
+        efs_construct=efs_instance,
     )
 
     ialirt_stack = Stack(scope, "IalirtStack", env=env)

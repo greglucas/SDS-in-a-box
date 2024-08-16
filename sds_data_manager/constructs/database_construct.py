@@ -1,7 +1,12 @@
 """Configure the database stack."""
 
+import aws_cdk as cdk
+from aws_cdk import CustomResource
 from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_rds as rds
+from aws_cdk import aws_secretsmanager as secrets
+from aws_cdk import custom_resources as cr
 from constructs import Construct
 
 
@@ -20,6 +25,8 @@ class SdpDatabase(Construct):
         username: str,
         secret_name: str,
         database_name: str,
+        code: lambda_.Code,
+        layers: list,
         **kwargs,
     ) -> None:
         """Database construct.
@@ -46,6 +53,10 @@ class SdpDatabase(Construct):
             Database secret_name for Secrets Manager
         database_name : str,
             Database name
+        code : lambda_.Code
+            Lambda code bundle to create the initial DB schema
+        layers : list
+            List of Lambda layers to attach to the lambda function
         kwargs : dict
             Keyword arguments
 
@@ -89,7 +100,7 @@ class SdpDatabase(Construct):
             subnet_type=ec2.SubnetType.PUBLIC
         )
 
-        rds.DatabaseInstance(
+        db = rds.DatabaseInstance(
             self,
             "RdsInstance",
             database_name=database_name,
@@ -103,3 +114,43 @@ class SdpDatabase(Construct):
             max_allocated_storage=max_allocated_storage,
             deletion_protection=False,
         )
+
+        # NOTE: Specifically, to report success or failure, have your Lambda Function
+        #       exit in the right way: return data for success, or throw an exception
+        #       for failure. Do not post the success or failure of your custom resource
+        #       to an HTTPS URL as the CloudFormation documentation tells you to do.
+        #       https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.custom_resources/README.html
+        schema_create_lambda = lambda_.Function(
+            self,
+            id="CreateMetadataSchema",
+            function_name="create-schema",
+            code=code,
+            handler="SDSCode.create_schema.lambda_handler",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            timeout=cdk.Duration.seconds(60),
+            memory_size=1000,
+            allow_public_subnet=True,
+            vpc=vpc,
+            vpc_subnets=self.rds_subnet_selection,
+            security_groups=[self.rds_security_group],
+            environment={
+                "SECRET_NAME": self.secret_name,
+            },
+            layers=layers,
+            architecture=lambda_.Architecture.ARM_64,
+        )
+        rds_secret = secrets.Secret.from_secret_name_v2(
+            self, "rds_secret", self.secret_name
+        )
+        rds_secret.grant_read(grantee=schema_create_lambda)
+        db.connections.allow_from(schema_create_lambda, ec2.Port.tcp(5432))
+
+        res_provider = cr.Provider(
+            self, "crProvider", on_event_handler=schema_create_lambda
+        )
+        db_custom_resource = CustomResource(
+            self, "CustomResource-DB-Schema", service_token=res_provider.service_token
+        )
+        # Add an explicit dependency on the RDS instance because we need the secret
+        # populated with the DB credentials before we can create the schema.
+        db_custom_resource.node.add_dependency(db)

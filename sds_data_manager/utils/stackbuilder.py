@@ -268,10 +268,10 @@ def build_backup(scope: App, env: Environment, source_account: str):
         Account number for source bucket for replication
 
     """
+    backup_stack = Stack(scope, "BackupStack", env=env)
     # This is the S3 bucket used by upload_api_lambda
     backup_bucket_construct.BackupBucket(
-        scope,
+        backup_stack,
         "BackupBucket",
         source_account=source_account,
-        env=env,
     )

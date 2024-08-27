@@ -171,16 +171,6 @@ class EFSWriteLambda(Construct):
             assumed_by=aws_iam.ServicePrincipal("lambda.amazonaws.com"),
         )
 
-        # Create a security group that allows network access to mount the EFS
-        self.efs_spice_ingest_sg = ec2.SecurityGroup(
-            self,
-            "LambdaEFSSecurityGroup",
-            vpc=vpc,
-            description="Allow calls to internet",
-            allow_all_outbound=True,
-            security_group_name="LambdaEFSSecurityGroup",
-        )
-
         # This access point is used by other resources to read from EFS
         lambda_mount_path = "/mnt/spice"
 
@@ -188,7 +178,9 @@ class EFSWriteLambda(Construct):
             self,
             "EFSWriteLambda",
             function_name="efs-write-lambda",
-            runtime=aws_lambda.Runtime.PYTHON_3_11,
+            # Allow access to the EFS over NFS port
+            allow_all_outbound=True,
+            runtime=aws_lambda.Runtime.PYTHON_3_12,
             code=code,
             handler="lambda_function.lambda_handler",
             role=efs_lambda_role,
@@ -200,8 +192,6 @@ class EFSWriteLambda(Construct):
                 efs_construct.spice_access_point, lambda_mount_path
             ),
             timeout=Duration.minutes(1),
-            # Allow access to the EFS over NFS port
-            security_groups=[self.efs_spice_ingest_sg],
             architecture=aws_lambda.Architecture.ARM_64,
             environment={
                 "EFS_MOUNT_PATH": lambda_mount_path,

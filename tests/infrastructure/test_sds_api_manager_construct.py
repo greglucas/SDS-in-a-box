@@ -1,4 +1,4 @@
-"""Test the SDS API manager stack."""
+"""Test the SDS API manager."""
 
 import pytest
 from aws_cdk import aws_ec2 as ec2

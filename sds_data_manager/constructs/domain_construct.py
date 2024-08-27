@@ -1,4 +1,4 @@
-"""Configure the domain stack."""
+"""Configure the domain."""
 
 from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_route53 as route53
@@ -20,7 +20,7 @@ class DomainConstruct(Construct):
         domain_name: str,
         **kwargs,
     ) -> None:
-        """Domain stack constructor.
+        """Domain name constructor.
 
         Parameters
         ----------

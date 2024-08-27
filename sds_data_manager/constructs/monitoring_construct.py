@@ -1,4 +1,4 @@
-"""Configure the monitoring stack.
+"""Configure the monitoring.
 
 Currently sets up an integration with Slack to send notifications to a channel.
 This is done through an SNS Topic and AWS Chatbot.

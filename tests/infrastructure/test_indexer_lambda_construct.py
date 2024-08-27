@@ -1,4 +1,4 @@
-"""Test the indexer lambda stack."""
+"""Test the indexer lambda."""
 
 import pytest
 from aws_cdk import aws_ec2 as ec2

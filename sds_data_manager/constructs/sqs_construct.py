@@ -16,7 +16,7 @@ class SqsConstruct(Construct):
         instrument_names: list[str],
         **kwargs,
     ):
-        """Create a stack to create a SQS queue and Eventbridge rule for an instrument.
+        """Create a SQS queue and Eventbridge rule for an instrument.
 
         Parameters
         ----------

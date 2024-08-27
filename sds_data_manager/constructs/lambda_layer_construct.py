@@ -1,4 +1,4 @@
-"""CDK stack to create a Lambda Layer."""
+"""CDK construct to create a Lambda Layer."""
 
 import aws_cdk as cdk
 from aws_cdk import aws_lambda as lambda_
@@ -11,7 +11,7 @@ class LambdaLayerConstruct(Construct):
     def __init__(
         self, scope: Construct, id: str, layer_dependencies_dir: str, **kwargs
     ) -> None:
-        """Create layer stack.
+        """Create layer.
 
         In layer code directory, there should exist a requirements.txt file
         which is used to install the dependencies for the lambda layer.

@@ -1,4 +1,4 @@
-"""Test the IAlirt database stack."""
+"""Test the IAlirt database."""
 
 import pytest
 from boto3.dynamodb.conditions import Key

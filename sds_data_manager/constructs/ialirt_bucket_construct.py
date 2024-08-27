@@ -1,4 +1,4 @@
-"""Configure the IAlirt bucket stack."""
+"""Configure the IAlirt bucket."""
 
 import aws_cdk as cdk
 from aws_cdk import RemovalPolicy

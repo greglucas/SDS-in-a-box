@@ -1,4 +1,4 @@
-"""Configure the SDS API Manager stack."""
+"""Configure the SDS API Manager."""
 
 import aws_cdk as cdk
 from aws_cdk import aws_iam as iam

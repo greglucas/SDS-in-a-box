@@ -1,4 +1,4 @@
-"""Configure the EFS stack."""
+"""Configure the EFS."""
 
 from aws_cdk import (
     Duration,
@@ -40,7 +40,7 @@ class EFSConstruct(Construct):
         vpc: ec2.Vpc,
         **kwargs,
     ) -> None:
-        """Construct the EFS stack.
+        """Construct the EFS.
 
         Parameters
         ----------

@@ -1,4 +1,4 @@
-"""Configure the database stack."""
+"""Configure the database."""
 
 import aws_cdk as cdk
 from aws_cdk import CustomResource

@@ -1,4 +1,4 @@
-"""Tests I-ALiRT processing stack."""
+"""Tests I-ALiRT processing."""
 
 import boto3
 import pytest

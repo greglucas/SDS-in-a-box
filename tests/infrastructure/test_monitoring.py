@@ -1,4 +1,4 @@
-"""Test the monitoring stack."""
+"""Test the monitoring."""
 
 import pytest
 from aws_cdk.assertions import Template

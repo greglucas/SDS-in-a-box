@@ -1,4 +1,4 @@
-"""Configure the data bucket stack."""
+"""Configure the data bucket."""
 
 import aws_cdk as cdk
 from aws_cdk import RemovalPolicy

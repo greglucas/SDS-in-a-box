@@ -66,7 +66,8 @@ class DomainConstruct(Construct):
             self.certificate = acm.Certificate(
                 self,
                 "DomainCertificate",
-                domain_name=f"*.{domain_name}",
+                domain_name=f"*.{domain_name}",  # *.imap-mission.com
+                subject_alternative_names=[domain_name],  # imap-mission.com
                 validation=acm.CertificateValidation.from_dns(
                     hosted_zone=self.hosted_zone
                 ),

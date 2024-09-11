@@ -8,6 +8,7 @@ An example of the format of the url: https://api.prod.imap-mission.com/query
 
 from aws_cdk import Duration, aws_sns
 from aws_cdk import aws_apigateway as apigw
+from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_cloudwatch as cloudwatch
 from aws_cdk import aws_cloudwatch_actions as cloudwatch_actions
 from aws_cdk import aws_lambda as lambda_
@@ -26,6 +27,7 @@ class ApiGateway(Construct):
         scope: Construct,
         construct_id: str,
         domain_construct: DomainConstruct = None,
+        certificate: acm.Certificate = None,
         **kwargs,
     ) -> None:
         """Construct the API Gateway Construct.
@@ -37,7 +39,9 @@ class ApiGateway(Construct):
         construct_id : str
             A unique string identifier for this construct.
         domain_construct : DomainConstruct, Optional
-            Custom domain, hosted zone, and certificate
+            Custom domain, hosted zone
+        certificate : Certificate
+            SSL certificate for the custom domain (in the same region)
         kwargs : dict
             Keyword arguments
 
@@ -59,7 +63,7 @@ class ApiGateway(Construct):
                 self,
                 "RestAPI-DomainName",
                 domain_name=f"api.{domain_construct.domain_name}",
-                certificate=domain_construct.certificate,
+                certificate=certificate,
                 endpoint_type=apigw.EndpointType.REGIONAL,
             )
 

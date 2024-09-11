@@ -4,6 +4,7 @@ from pathlib import Path
 
 import imap_data_access
 from aws_cdk import App, Environment, Stack
+from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_rds as rds
@@ -54,7 +55,8 @@ def build_sds(
 
     domain = None
     domain_name = account_config.get("domain_name", None)
-    hosted_zone_stack = Stack(scope, "HostedZoneCertificateStack", env=env)
+    us_east_env = Environment(account=env.account, region="us-east-1")
+    hosted_zone_stack = Stack(scope, "HostedZoneCertificateStack", env=us_east_env)
     if account_config["account_name"] == "prod":
         # This is for the root level account So it should be the base url
         # e.g."imap-mission.com"
@@ -76,6 +78,18 @@ def build_sds(
         )
 
     sdc_stack = Stack(scope, "SDCStack", cross_region_references=True, env=env)
+
+    root_certificate = None
+    if domain is not None:
+        root_certificate = acm.Certificate(
+            sdc_stack,
+            "DomainRegionCertificate",
+            domain_name=f"*.{domain_name}",  # *.imap-mission.com
+            subject_alternative_names=[domain_name],  # imap-mission.com
+            validation=acm.CertificateValidation.from_dns(
+                hosted_zone=domain.hosted_zone
+            ),
+        )
 
     # Adding this endpoint so that lambda within
     # this VPC can perform boto3.client("events")
@@ -110,6 +124,7 @@ def build_sds(
         scope=sdc_stack,
         construct_id="ApiGateway",
         domain_construct=domain,
+        certificate=root_certificate,
     )
     api.deliver_to_sns(monitoring.sns_topic_notifications)
 

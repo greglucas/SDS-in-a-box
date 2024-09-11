@@ -32,7 +32,6 @@ class FargateBatchResources(Construct):
         repo: ecr.Repository,
         db_secret_name: str,
         efs_instance: EFSConstruct,
-        account_name: str,
         batch_max_vcpus=10,
         job_vcpus=0.25,
         job_memory=2048,
@@ -58,11 +57,6 @@ class FargateBatchResources(Construct):
             RDS secret name for secret manager access
         efs_instance: efs.Filesystem
             EFS stack object
-        account_name: str
-            account name such as 'dev' or 'prod' or user specified.
-            account_name is used as ECR's tag.
-            This value can be overwritten by command line input and can
-            be accessed from the cdk.json file.
         batch_max_vcpus : int, Optional
             Maximum number of virtual CPUs per compute instance.
         job_vcpus : int, Optional

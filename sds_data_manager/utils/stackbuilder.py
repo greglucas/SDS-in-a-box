@@ -14,7 +14,6 @@ from sds_data_manager.constructs import (
     batch_compute_resources,
     data_bucket_construct,
     database_construct,
-    domain_construct,
     ecr_construct,
     efs_construct,
     ialirt_bucket_construct,
@@ -25,6 +24,7 @@ from sds_data_manager.constructs import (
     lambda_layer_construct,
     monitoring_construct,
     networking_construct,
+    route53_hosted_zone,
     sds_api_manager_construct,
     sqs_construct,
 )
@@ -52,7 +52,30 @@ def build_sds(
         networking_stack, "Networking"
     )
 
-    sdc_stack = Stack(scope, "SDCStack", env=env)
+    domain = None
+    domain_name = account_config.get("domain_name", None)
+    hosted_zone_stack = Stack(scope, "HostedZoneCertificateStack", env=env)
+    if account_config["account_name"] == "prod":
+        # This is for the root level account So it should be the base url
+        # e.g."imap-mission.com"
+        domain = route53_hosted_zone.DomainConstruct(
+            hosted_zone_stack,
+            "HostedZoneConstruct",
+            domain_name,
+            create_new_hosted_zone=True,
+        )
+        domain.setup_cf_and_lambda_authorizer(allowed_ip="128.138.131.13")  # LASP IPs
+    elif domain_name is not None:
+        # This is for the subaccounts, so it should be the subdomain url
+        # e.g. "dev.imap-mission.com"
+        domain = route53_hosted_zone.DomainConstruct(
+            hosted_zone_stack,
+            "HostedZoneConstruct",
+            domain_name,
+            create_new_hosted_zone=True,
+        )
+
+    sdc_stack = Stack(scope, "SDCStack", cross_region_references=True, env=env)
 
     # Adding this endpoint so that lambda within
     # this VPC can perform boto3.client("events")
@@ -82,17 +105,6 @@ def build_sds(
         scope=sdc_stack,
         construct_id="MonitoringConstruct",
     )
-
-    domain = None
-    domain_name = account_config.get("domain_name", None)
-    account_name = account_config["account_name"]
-    if domain_name is not None:
-        domain = domain_construct.DomainConstruct(
-            scope=sdc_stack,
-            construct_id="DomainConstruct",
-            domain_name=domain_name,
-            account_name=account_name,
-        )
 
     api = api_gateway_construct.ApiGateway(
         scope=sdc_stack,
@@ -183,7 +195,6 @@ def build_sds(
             repo=ecr.container_repo,
             db_secret_name=db_secret_name,
             efs_instance=efs_instance,
-            account_name=account_name,
         )
 
     # Create SQS pipeline for each instrument and add it to instrument_sqs

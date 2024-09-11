@@ -15,7 +15,7 @@ from aws_cdk import aws_route53 as route53
 from aws_cdk import aws_route53_targets as targets
 from constructs import Construct
 
-from sds_data_manager.constructs.domain_construct import DomainConstruct
+from sds_data_manager.constructs.route53_hosted_zone import DomainConstruct
 
 
 class ApiGateway(Construct):

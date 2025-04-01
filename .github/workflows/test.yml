@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev
+      - test
   pull_request:
 
 jobs:
@@ -37,6 +38,7 @@ jobs:
           npm install -g aws-cdk
           # poetry run to get the environment we installed everything into
           poetry run cdk synth
+          ls cdk.out/asset.*/python/psycopg2/
 
       - name: Upload code coverage
         uses: codecov/codecov-action@v3

@@ -15,7 +15,7 @@
     ]
   },
   "context": {
-    "account_name": "dev",
+    "account_name": "sit-4",
     "backup": {
       "account": "012345678901",
       "source_account": "dev"
@@ -28,6 +28,11 @@
     "prod": {
       "account": "593025701104",
       "domain_name": "imap-mission.com",
+      "region": "us-west-2"
+    },
+    "sit-4": {
+      "account": "038462760545",
+      "domain_name": "sit-4.imap-mission.com",
       "region": "us-west-2"
     },
     "@aws-cdk/aws-apigateway:usagePlanKeyOrderInsensitiveId": true,
